@@ -15,15 +15,15 @@ auto WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) -> int {
   window->make_context_current();
 
   auto scene_manager = rugame::SceneManager{};
-  auto test_scene = create_test_scene();
-  scene_manager.set_active_scene(window, &test_scene);
+  scene_manager.register_scene("main_menu", new_main_menu_scene(&scene_manager));
+  scene_manager.register_scene("game", new_game_scene(&scene_manager));
+  scene_manager.set_active_scene("main_menu");
 
   window->run([&](ruapp::Window *window, double delta) {
-    scene_manager.scene->update(window, delta);
-    scene_manager.scene->render(window, delta);
+    scene_manager.update(window, delta);
   });
 
-  scene_manager.deinit();
+  scene_manager.deinit(window);
 
   ruapp::Window::destroy(window);
   ruapp::Window::fiber_deinit();

@@ -6,7 +6,7 @@ auto Scene::init(ruapp::Window *window) -> void {
   screen = Screen{(float)window->width, (float)window->height};
   camera = Camera2d{&screen, {0.f, 0.f, 3.f}};
 
-  ui_screen.update_size(window->width, window->height);
+  ui_screen.set_size(window->width, window->height);
   ui_renderer.init(&ui_screen);
   ui_tree.init(&ui_screen);
 
@@ -14,9 +14,9 @@ auto Scene::init(ruapp::Window *window) -> void {
     glViewport(0, 0, width, height);
     screen.width = (float)width;
     screen.height = (float)height;
-    ui_screen.update_size(width, height);
+    ui_screen.set_size(width, height);
     ui_renderer.regenerate_surface(&ui_screen);
-    ui_tree.update_size(&ui_screen);
+    ui_tree.set_size(&ui_screen);
   });
   window->on_mouse_enter = ([this](ruapp::Window *, int x, int y) {
     ui_tree.run_mouse_event(x, y);
@@ -38,22 +38,53 @@ auto Scene::init(ruapp::Window *window) -> void {
   });
 }
 
-auto Scene::deinit() -> void {
+auto Scene::deinit(ruapp::Window *window) -> void {
+  window->on_resize = nullptr;
+  window->on_mouse_enter = nullptr;
+  window->on_mouse_leave = nullptr;
+  window->on_mouse_move = nullptr;
+  window->on_mouse_down = nullptr;
+  window->on_mouse_up = nullptr;
+  window->on_mouse_scroll = nullptr;
+
   if (fn_deinit) {
     fn_deinit(this);
   }
-  for (auto game_object : game_objects) {
+
+  for (const auto game_object : game_objects) {
     delete game_object;
   }
+  game_objects.clear();
+  render_list.clear();
+
+  ui_node_hashmap.clear();
+  ui_tree.reset();
+}
+
+auto Scene::destroy_game_object(GameObject *game_object) -> void {
+  destroy_game_objects.insert(game_object);
+}
+
+auto Scene::update_pre() -> void {
+  for (auto game_object : destroy_game_objects) {
+    game_objects[game_object->index] = game_objects.back();
+    game_objects[game_object->index]->index = game_object->index;
+    game_objects.resize(game_objects.size() - 1);
+    delete game_object;
+  }
+  destroy_game_objects.clear();
 }
 
 auto Scene::update(ruapp::Window *window, double delta) -> void {
-  // update
   camera.update();
+
+  // scene upate
   if (fn_update) {
     fn_update(window, this, delta);
   }
-  for (auto game_object : game_objects) {
+
+  // game object update
+  for (const auto game_object : game_objects) {
     game_object->update(window, this, delta);
   }
 }
@@ -72,13 +103,13 @@ auto Scene::render(ruapp::Window *window, double) -> void {
   glClearColor(1.f, 1.f, 1.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-  // render sprites
-  for (auto sprite : render_queue) {
+  // render game
+  for (auto sprite : render_list) {
     sprite->draw(&camera);
   }
-  render_queue.clear();
+  render_list.clear();
 
-  // render rugui
+  // render gui
   ui_renderer.context->resetContext();
   ui_tree.root->layout(&ui_renderer);
   ui_tree.root->draw_all(&ui_renderer);
@@ -88,29 +119,69 @@ auto Scene::render(ruapp::Window *window, double) -> void {
   window->swap_buffers();
 }
 
-auto SceneManager::set_active_scene(ruapp::Window *window, Scene *const in_scene) -> void {
-  if (in_scene == nullptr) {
+auto SceneManager::register_scene(const std::string &name, Scene *scene) -> void {
+  scenes.insert({name, scene});
+}
+
+auto SceneManager::unregister_scene(const std::string &name) -> void {
+  scenes.erase(name);
+}
+
+auto SceneManager::set_active_scene(const std::string &name) -> void {
+  if (not scenes.contains(name) || cur_scene == scenes.at(name)) {
+    return;
+  }
+  new_scene = scenes.at(name);
+}
+
+auto SceneManager::change_scene(ruapp::Window *window) -> void {
+  if (new_scene == nullptr) {
     return;
   }
 
-  if (scene != nullptr) {
-    scene->deinit();
+  // deinit current scene
+  if (cur_scene != nullptr) {
+    cur_scene->deinit(window);
   }
 
-  scene = in_scene;
-  scene->init(window);
-  if (scene->fn_init) {
-    scene->fn_init(scene);
+  cur_scene = new_scene;
+  new_scene = nullptr;
+
+  // init new scene
+  cur_scene->init(window);
+  if (cur_scene->fn_init) {
+    cur_scene->fn_init(cur_scene);
   }
-  if (scene->fn_start) {
-    scene->fn_start(window, scene);
+  if (cur_scene->fn_start) {
+    cur_scene->fn_start(window, cur_scene);
+  }
+
+  // init ui
+  {
+    auto mouse_pos = POINT{};
+    ::GetCursorPos(&mouse_pos);
+    ::ScreenToClient(window->hWnd, &mouse_pos);
+    cur_scene->ui_tree.root->layout(&cur_scene->ui_renderer);
+    cur_scene->ui_tree.run_mouse_event(mouse_pos.x, mouse_pos.y);
   }
 }
 
-auto SceneManager::deinit() -> void {
-  if (scene != nullptr) {
-    scene->deinit();
+auto SceneManager::deinit(ruapp::Window *window) -> void {
+  if (cur_scene != nullptr) {
+    cur_scene->deinit(window);
   }
+  for (const auto &[_, scene] : scenes) {
+    delete scene;
+  }
+}
+
+auto SceneManager::update(ruapp::Window *window, double delta) -> void {
+  if (cur_scene != nullptr) {
+    cur_scene->update_pre();
+    cur_scene->update(window, delta);
+    cur_scene->render(window, delta);
+  }
+  change_scene(window);
 }
 
 } // namespace rugame

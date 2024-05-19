@@ -89,6 +89,7 @@ auto make_quad_mesh(glm::vec3 tr, glm::vec3 tl, glm::vec3 bl, glm::vec3 br) -> M
     1, 2, 3,
   };
   // clang-format on
+
   constexpr auto stride = 5 * sizeof(float);
 
   auto vbo = uint32_t{};

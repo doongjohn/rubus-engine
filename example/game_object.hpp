@@ -1,30 +1,46 @@
 #pragma once
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
-
 #include <rubus-engine/game/scene.hpp>
 #include <rubus-engine/game/game_object.hpp>
 
-struct Dragon : public rugame::GameObject {
+struct GreenDragon : public rugame::GameObject {
   rugame::Sprite *sprite = nullptr;
 
-  Dragon() {
+  GreenDragon() {
     sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"monster.green_dragon"}};
-    sprite->transform = glm::translate(sprite->transform, glm::vec3{rand() % 600 - 300, rand() % 600 - 300, 0.f});
+    position = glm::vec3{rand() % 600 - 300, rand() % 600 - 300, 0.f};
+    sprite->transform = glm::translate(sprite->transform, position);
   }
-  ~Dragon() override {
+  ~GreenDragon() override {
     delete sprite;
   }
 
   inline auto update(ruapp::Window *, rugame::Scene *scene, double) -> void override {
-    scene->render_queue.push_back(sprite);
+    scene->render_list.push_back(sprite);
+  }
+};
+
+struct RedDragon : public rugame::GameObject {
+  rugame::Sprite *sprite = nullptr;
+
+  RedDragon() {
+    sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"monster.red_dragon"}};
+    position = glm::vec3{rand() % 600 - 300, rand() % 600 - 300, 0.f};
+    sprite->transform = glm::translate(sprite->transform, position);
+  }
+  ~RedDragon() override {
+    delete sprite;
+  }
+
+  inline auto update(ruapp::Window *, rugame::Scene *scene, double) -> void override {
+    scene->render_list.push_back(sprite);
   }
 };
 
 struct ElfWarrior : public rugame::GameObject {
   rugame::Sprite *sprite = nullptr;
+  int health = 5;
+  float speed = 250.f;
 
   ElfWarrior() {
     sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"character.elf_warrior"}};
@@ -50,9 +66,30 @@ struct ElfWarrior : public rugame::GameObject {
     if (glm::length(input_dir) > 0) {
       input_dir = glm::normalize(input_dir);
     }
-    const auto movement = input_dir * (120.f * delta);
-    sprite->transform = glm::translate(sprite->transform, glm::vec3{movement, 0.f});
+    const auto movement = input_dir * (speed * delta);
+    position += glm::vec3{movement, 0.f};
 
-    scene->render_queue.push_back(sprite);
+    sprite->transform = glm::mat4{1.f};
+    sprite->transform = glm::translate(sprite->transform, position);
+
+    for (auto game_object : scene->game_objects) {
+      if (game_object != this) {
+        if (glm::distance(game_object->position, position) < 40) {
+          if (dynamic_cast<GreenDragon *>(game_object)) {
+            health += 1;
+          }
+          if (dynamic_cast<RedDragon *>(game_object)) {
+            health -= 1;
+            if (health == 0) {
+              scene->destroy_game_object(this);
+            }
+          }
+          scene->destroy_game_object(game_object);
+        }
+      }
+    }
+    scene->ui_node_hashmap.at("player")->text = std::format("health: {}", health);
+
+    scene->render_list.push_back(sprite);
   }
 };

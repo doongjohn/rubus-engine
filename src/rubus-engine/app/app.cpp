@@ -195,6 +195,11 @@ auto Window::init_context() -> void {
           (void)length;
           (void)data;
 
+          if (id == 131186) {
+            // Buffer performance warning: Buffer object 1 (bound to GL_ELEMENT_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) is being copied/moved from VIDEO memory to HOST memory.
+            return;
+          }
+
           const char *str_source;
           switch (source) {
           case GL_DEBUG_SOURCE_API:
