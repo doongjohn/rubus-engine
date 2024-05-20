@@ -34,7 +34,6 @@ target_sources(
     src/rubus-engine/graphics/graphics.cpp
     src/rubus-engine/game/resource.cpp
     src/rubus-engine/game/game.cpp
-    src/rubus-engine/game/game_object.cpp
     src/rubus-engine/game/scene.cpp
   PUBLIC
     FILE_SET HEADERS
@@ -47,7 +46,6 @@ target_sources(
       src/rubus-engine/graphics/graphics.hpp
       src/rubus-engine/game/resource.hpp
       src/rubus-engine/game/game.hpp
-      src/rubus-engine/game/game_object.hpp
       src/rubus-engine/game/scene.hpp
 )
 
@@ -65,9 +63,11 @@ target_link_libraries(
     stb
     glm
     rubus-gui
+    rubus-ecs
 )
 
 include("cmake/stb.cmake")
 include("cmake/glm.cmake")
 include("cmake/rubus-gui.cmake")
+include("cmake/rubus-ecs.cmake")
 include("cmake/example.cmake")

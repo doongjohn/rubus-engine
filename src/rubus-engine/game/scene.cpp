@@ -5,6 +5,7 @@ namespace rugame {
 auto Scene::init(ruapp::Window *window) -> void {
   screen = Screen{(float)window->width, (float)window->height};
   camera = Camera2d{&screen, {0.f, 0.f, 3.f}};
+  archetype_storage = {};
 
   ui_screen.set_size(window->width, window->height);
   ui_renderer.init(&ui_screen);
@@ -51,31 +52,28 @@ auto Scene::deinit(ruapp::Window *window) -> void {
     fn_deinit(this);
   }
 
-  for (const auto game_object : game_objects) {
-    delete game_object;
-  }
-  game_objects.clear();
+  archetype_storage.archetypes.clear();
+  oneshot_systems.clear();
+  update_systems.clear();
   render_list.clear();
 
   ui_node_hashmap.clear();
   ui_tree.reset();
 }
 
-auto Scene::destroy_game_object(GameObject *game_object) -> void {
-  destroy_game_objects.insert(game_object);
+auto Scene::destroy_entity(ruecs::Entity entity) -> void {
+  destroy_entities.insert(entity);
 }
 
 auto Scene::update_pre() -> void {
-  for (auto game_object : destroy_game_objects) {
-    game_objects[game_object->index] = game_objects.back();
-    game_objects[game_object->index]->index = game_object->index;
-    game_objects.resize(game_objects.size() - 1);
-    delete game_object;
+  for (auto entity : destroy_entities) {
+    archetype_storage.delete_entity(entity);
   }
-  destroy_game_objects.clear();
+  destroy_entities.clear();
 }
 
 auto Scene::update(ruapp::Window *window, double delta) -> void {
+  delta_time = delta;
   camera.update();
 
   // scene upate
@@ -83,9 +81,15 @@ auto Scene::update(ruapp::Window *window, double delta) -> void {
     fn_update(window, this, delta);
   }
 
-  // game object update
-  for (const auto game_object : game_objects) {
-    game_object->update(window, this, delta);
+  // oneshot systems
+  for (const auto &system : oneshot_systems) {
+    archetype_storage.run_system(system);
+  }
+  oneshot_systems.clear();
+
+  // update system
+  for (const auto &system : update_systems) {
+    archetype_storage.run_system(system);
   }
 }
 

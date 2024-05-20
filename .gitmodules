@@ -1,3 +1,6 @@
 [submodule "vendor/rubus-gui"]
 	path = vendor/rubus-gui
 	url = https://github.com/doongjohn/rubus-gui
+[submodule "vendor/rubus-ecs"]
+	path = vendor/rubus-ecs
+	url = https://github.com/doongjohn/rubus-ecs
