@@ -1,6 +1,7 @@
 #include <cstdlib>
 
-#include "scenes/scene.hpp"
+#include "scenes/main_menu.hpp"
+#include "scenes/game.hpp"
 
 #define WIN32_LEAN_AND_MEAN
 #include <rubus-engine/app/app.hpp>
