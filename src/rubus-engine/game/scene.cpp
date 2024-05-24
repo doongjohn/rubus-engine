@@ -5,7 +5,7 @@ namespace rugame {
 auto Scene::init(ruapp::Window *window) -> void {
   screen = Screen{(float)window->width, (float)window->height};
   camera = Camera2d{&screen, {0.f, 0.f, 3.f}};
-  archetype_storage = {};
+  arch_storage = {};
 
   ui_screen.set_size(window->width, window->height);
   ui_renderer.init(&ui_screen);
@@ -52,9 +52,7 @@ auto Scene::deinit(ruapp::Window *window) -> void {
     fn_deinit(this);
   }
 
-  archetype_storage.archetypes.clear();
-  oneshot_systems.clear();
-  update_systems.clear();
+  arch_storage.archetypes.clear();
   render_list.clear();
 
   ui_node_hashmap.clear();
@@ -67,7 +65,7 @@ auto Scene::destroy_entity(ruecs::Entity entity) -> void {
 
 auto Scene::update_pre() -> void {
   for (auto entity : destroy_entities) {
-    archetype_storage.delete_entity(entity);
+    arch_storage.delete_entity(entity);
   }
   destroy_entities.clear();
 }
@@ -79,17 +77,6 @@ auto Scene::update(ruapp::Window *window, double delta) -> void {
   // scene upate
   if (fn_update) {
     fn_update(window, this, delta);
-  }
-
-  // oneshot systems
-  for (const auto &system : oneshot_systems) {
-    archetype_storage.run_system(system);
-  }
-  oneshot_systems.clear();
-
-  // update system
-  for (const auto &system : update_systems) {
-    archetype_storage.run_system(system);
   }
 }
 

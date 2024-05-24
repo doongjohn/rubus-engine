@@ -19,9 +19,7 @@ struct Scene {
   double delta_time = 0;
 
   Camera2d camera;
-  ruecs::ArchetypeStorage archetype_storage;
-  std::vector<ruecs::System> oneshot_systems;
-  std::vector<ruecs::System> update_systems;
+  ruecs::ArchetypeStorage arch_storage;
   std::unordered_set<ruecs::Entity> destroy_entities;
   std::vector<Sprite *> render_list;
 
