@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 #include "glm/ext/matrix_transform.hpp"
 
 #include <rubus-engine/game/scene.hpp>
