@@ -1,5 +1,7 @@
 #include "scene.hpp"
 
+#include <iostream>
+
 namespace rugame {
 
 Scene::Scene() : command{&arch_storage} {}
@@ -48,6 +50,7 @@ auto Scene::deinit(ruapp::Window *window) -> void {
   for (auto &layer : layers) {
     layer.clear();
   }
+
   arch_storage.delete_all_archetypes();
   command.discard();
 
@@ -68,7 +71,7 @@ auto Scene::deinit(ruapp::Window *window) -> void {
 }
 
 auto Scene::update(ruapp::Window *window, SceneManager *scene_manager, double delta) -> void {
-  delta_time = delta;
+  this->delta = delta;
   camera.update();
 
   // scene upate
@@ -136,10 +139,13 @@ auto SceneManager::unregister_scene(const std::string &name) -> void {
 }
 
 auto SceneManager::set_active_scene(const std::string &name) -> void {
-  if (not scenes.contains(name) || cur_scene == scenes.at(name)) {
+  if (not scenes.contains(name)) {
+    std::cout << std::format("set_active_scene failed: unknown registered scene name \"{}\"", name);
     return;
   }
-  new_scene = scenes.at(name);
+  if (cur_scene != scenes.at(name)) {
+    new_scene = scenes.at(name);
+  }
 }
 
 auto SceneManager::change_scene(ruapp::Window *window) -> void {

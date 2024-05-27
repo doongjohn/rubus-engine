@@ -25,7 +25,7 @@ inline auto new_game_scene() -> rugame::Scene * {
     std::srand(std::time(nullptr));
 
     // spawn GreenDragon
-    for (auto i = 0; i < 6; ++i) {
+    for (auto i = 0; i < 8; ++i) {
       auto position = glm::vec3{rand() % 600 - 300, rand() % 600 - 300, 0.f};
       auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"monster.green_dragon"}};
       auto e = scene->arch_storage.create_entity();
@@ -35,7 +35,7 @@ inline auto new_game_scene() -> rugame::Scene * {
     }
 
     // spawn RedDragon
-    for (auto i = 0; i < 6; ++i) {
+    for (auto i = 0; i < 8; ++i) {
       auto position = glm::vec3{rand() % 600 - 300, rand() % 600 - 300, 0.f};
       auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"monster.red_dragon"}};
       auto e = scene->arch_storage.create_entity();
@@ -56,7 +56,7 @@ inline auto new_game_scene() -> rugame::Scene * {
     // init ui
     scene->ui_node_hashmap.insert(
       {"player",
-       (new rugui::Node{"player", "health: "})->set_font_size(30)->set_flex_self_align(rugui::FlexAlign::Start)});
+       (new rugui::Node{"player", "health: "})->set_font_size(30)->set_flex_self_align(rugui::FlexAlign::Center)});
 
     scene->ui_tree.root
       ->add(
@@ -104,7 +104,8 @@ inline auto new_game_scene() -> rugame::Scene * {
       if (glm::length(input_dir) > 0) {
         input_dir = glm::normalize(input_dir);
       }
-      const auto movement = input_dir * (float)(player->speed * scene->delta_time);
+
+      const auto movement = input_dir * (float)(player->speed * scene->delta);
       transform->position += glm::vec3{movement, 0.f};
     }
 

@@ -17,10 +17,9 @@ struct SceneManager;
 
 struct Scene {
   Screen screen;
-  double delta_time = 0;
-
   Camera2d camera;
   std::array<std::vector<Sprite *>, 5> layers;
+
   ruecs::ArchetypeStorage arch_storage;
   ruecs::Command command;
 
@@ -29,11 +28,17 @@ struct Scene {
   rugui::Tree ui_tree;
   std::unordered_map<std::string, rugui::Node *> ui_node_hashmap;
 
-  std::function<void(Scene *scene)> fn_on_init;
-  std::function<void(Scene *scene)> fn_on_end;
-  std::function<void(Scene *scene)> fn_on_deinit;
-  std::function<void(ruapp::Window *window, SceneManager *scene_manager, Scene *scene)> fn_on_start;
-  std::function<void(ruapp::Window *window, SceneManager *scene_manager, Scene *scene, double delta)> fn_on_update;
+  double delta = 0;
+
+  using Callback1 = std::function<void(Scene *scene)>;
+  using Callback2 = std::function<void(ruapp::Window *window, SceneManager *scene_manager, Scene *scene)>;
+  using Callback3 = std::function<void(ruapp::Window *window, SceneManager *scene_manager, Scene *scene, double delta)>;
+
+  Callback1 fn_on_init;
+  Callback1 fn_on_deinit;
+  Callback2 fn_on_start;
+  Callback1 fn_on_end;
+  Callback3 fn_on_update;
 
   Scene();
 
