@@ -6,7 +6,7 @@
 #include <rubus-engine/game/resource.hpp>
 #include "../components.hpp"
 
-inline auto new_game_scene(rugame::SceneManager *scene_manager) -> rugame::Scene * {
+inline auto new_game_scene() -> rugame::Scene * {
   auto scene = new rugame::Scene{};
 
   scene->fn_on_init = [](rugame::Scene *) {
@@ -21,7 +21,7 @@ inline auto new_game_scene(rugame::SceneManager *scene_manager) -> rugame::Scene
     rugame::SpriteMaterial::deinit();
   };
 
-  scene->fn_on_start = [&](ruapp::Window *, rugame::Scene *scene) {
+  scene->fn_on_start = [](ruapp::Window *, rugame::SceneManager *, rugame::Scene *scene) {
     std::srand(std::time(nullptr));
 
     // spawn GreenDragon
@@ -64,7 +64,7 @@ inline auto new_game_scene(rugame::SceneManager *scene_manager) -> rugame::Scene
       ->add(scene->ui_node_hashmap.at("player"));
   };
 
-  scene->fn_on_update = [=](ruapp::Window *window, rugame::Scene *, double) {
+  scene->fn_on_update = [](ruapp::Window *window, rugame::SceneManager *scene_manager, rugame::Scene *scene, double) {
     if (window->is_key_just_down(VK_ESCAPE)) {
       scene_manager->set_active_scene("main_menu");
     }

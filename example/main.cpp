@@ -15,8 +15,8 @@ auto WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) -> int {
   window->make_context_current();
 
   auto scene_manager = rugame::SceneManager{};
-  scene_manager.register_scene("main_menu", new_main_menu_scene(&scene_manager));
-  scene_manager.register_scene("game", new_game_scene(&scene_manager));
+  scene_manager.register_scene("main_menu", new_main_menu_scene());
+  scene_manager.register_scene("game", new_game_scene());
   scene_manager.set_active_scene("main_menu");
 
   window->run([&](ruapp::Window *window, double delta) {

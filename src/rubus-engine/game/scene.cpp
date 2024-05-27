@@ -65,13 +65,13 @@ auto Scene::deinit(ruapp::Window *window) -> void {
   }
 }
 
-auto Scene::update(ruapp::Window *window, double delta) -> void {
+auto Scene::update(ruapp::Window *window, SceneManager *scene_manager, double delta) -> void {
   delta_time = delta;
   camera.update();
 
   // scene upate
   if (fn_on_update) {
-    fn_on_update(window, this, delta);
+    fn_on_update(window, scene_manager, this, delta);
   }
 }
 
@@ -90,6 +90,8 @@ auto Scene::render(ruapp::Window *window, double) -> void {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   // render game
+  // TODO: sorting layer
+  std::ranges::sort(render_list);
   for (auto sprite : render_list) {
     sprite->draw(&camera);
   }
@@ -103,6 +105,23 @@ auto Scene::render(ruapp::Window *window, double) -> void {
 
   // swap buffers
   window->swap_buffers();
+}
+
+auto SceneManager::deinit(ruapp::Window *window) -> void {
+  if (cur_scene != nullptr) {
+    cur_scene->deinit(window);
+  }
+  for (const auto &[_, scene] : scenes) {
+    delete scene;
+  }
+}
+
+auto SceneManager::update(ruapp::Window *window, double delta) -> void {
+  if (cur_scene != nullptr) {
+    cur_scene->update(window, this, delta);
+    cur_scene->render(window, delta);
+  }
+  change_scene(window);
 }
 
 auto SceneManager::register_scene(const std::string &name, Scene *scene) -> void {
@@ -139,34 +158,15 @@ auto SceneManager::change_scene(ruapp::Window *window) -> void {
     cur_scene->fn_on_init(cur_scene);
   }
   if (cur_scene->fn_on_start) {
-    cur_scene->fn_on_start(window, cur_scene);
+    cur_scene->fn_on_start(window, this, cur_scene);
   }
 
   // init ui
-  {
-    auto mouse_pos = POINT{};
-    ::GetCursorPos(&mouse_pos);
-    ::ScreenToClient(window->hWnd, &mouse_pos);
-    cur_scene->ui_tree.root->layout(&cur_scene->ui_renderer);
-    cur_scene->ui_tree.run_mouse_event(mouse_pos.x, mouse_pos.y);
-  }
-}
-
-auto SceneManager::deinit(ruapp::Window *window) -> void {
-  if (cur_scene != nullptr) {
-    cur_scene->deinit(window);
-  }
-  for (const auto &[_, scene] : scenes) {
-    delete scene;
-  }
-}
-
-auto SceneManager::update(ruapp::Window *window, double delta) -> void {
-  if (cur_scene != nullptr) {
-    cur_scene->update(window, delta);
-    cur_scene->render(window, delta);
-  }
-  change_scene(window);
+  auto mouse_pos = POINT{};
+  ::GetCursorPos(&mouse_pos);
+  ::ScreenToClient(window->hWnd, &mouse_pos);
+  cur_scene->ui_tree.root->layout(&cur_scene->ui_renderer);
+  cur_scene->ui_tree.run_mouse_event(mouse_pos.x, mouse_pos.y);
 }
 
 } // namespace rugame

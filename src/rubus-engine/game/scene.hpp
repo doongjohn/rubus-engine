@@ -13,6 +13,8 @@
 
 namespace rugame {
 
+struct SceneManager;
+
 struct Scene {
   Screen screen;
   double delta_time = 0;
@@ -30,15 +32,14 @@ struct Scene {
   std::function<void(Scene *scene)> fn_on_init;
   std::function<void(Scene *scene)> fn_on_end;
   std::function<void(Scene *scene)> fn_on_deinit;
-  std::function<void(ruapp::Window *window, Scene *scene)> fn_on_start;
-  std::function<void(ruapp::Window *window, Scene *scene, double delta)> fn_on_update;
+  std::function<void(ruapp::Window *window, SceneManager *scene_manager, Scene *scene)> fn_on_start;
+  std::function<void(ruapp::Window *window, SceneManager *scene_manager, Scene *scene, double delta)> fn_on_update;
 
   Scene();
 
   auto init(ruapp::Window *window) -> void;
   auto deinit(ruapp::Window *window) -> void;
-
-  auto update(ruapp::Window *window, double delta) -> void;
+  auto update(ruapp::Window *window, SceneManager *scene_manager, double delta) -> void;
   auto render(ruapp::Window *window, double delta) -> void;
 };
 
@@ -47,14 +48,13 @@ struct SceneManager {
   Scene *new_scene = nullptr;
   std::unordered_map<std::string, Scene *> scenes;
 
+  auto deinit(ruapp::Window *window) -> void;
+  auto update(ruapp::Window *window, double delta) -> void;
+
   auto register_scene(const std::string &name, Scene *scene) -> void;
   auto unregister_scene(const std::string &name) -> void;
-
   auto set_active_scene(const std::string &name) -> void;
   auto change_scene(ruapp::Window *window) -> void;
-  auto deinit(ruapp::Window *window) -> void;
-
-  auto update(ruapp::Window *window, double delta) -> void;
 };
 
 } // namespace rugame

@@ -3,7 +3,7 @@
 #include <rubus-engine/game/scene.hpp>
 #include <rubus-engine/game/resource.hpp>
 
-inline auto new_main_menu_scene(rugame::SceneManager *scene_manager) -> rugame::Scene * {
+inline auto new_main_menu_scene() -> rugame::Scene * {
   auto scene = new rugame::Scene{};
 
   scene->fn_on_init = [](rugame::Scene *) {
@@ -14,7 +14,7 @@ inline auto new_main_menu_scene(rugame::SceneManager *scene_manager) -> rugame::
     rugame::SpriteMaterial::deinit();
   };
 
-  scene->fn_on_start = [=](ruapp::Window *window, rugame::Scene *scene) {
+  scene->fn_on_start = [](ruapp::Window *window, rugame::SceneManager *scene_manager, rugame::Scene *scene) {
     scene->ui_tree.root
       ->add((new rugui::Node{"title", "Example RPG"})
               ->set_font_size(60)
@@ -50,7 +50,7 @@ inline auto new_main_menu_scene(rugame::SceneManager *scene_manager) -> rugame::
             (new rugui::Node{"text", "Exit Game"})->set_font_size(30)->set_flex_self_align(rugui::FlexAlign::Center)));
   };
 
-  scene->fn_on_update = [=](ruapp::Window *window, rugame::Scene *, double) {
+  scene->fn_on_update = [](ruapp::Window *window, rugame::SceneManager *scene_manager, rugame::Scene *, double) {
     if (window->is_key_just_down(VK_ESCAPE)) {
       scene_manager->set_active_scene("game");
     }
