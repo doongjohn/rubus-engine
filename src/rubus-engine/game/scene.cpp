@@ -2,10 +2,11 @@
 
 namespace rugame {
 
+Scene::Scene() : command{&arch_storage} {}
+
 auto Scene::init(ruapp::Window *window) -> void {
   screen = Screen{(float)window->width, (float)window->height};
   camera = Camera2d{&screen, {0.f, 0.f, 3.f}};
-  arch_storage = {};
 
   ui_screen.set_size(window->width, window->height);
   ui_renderer.init(&ui_screen);
@@ -40,6 +41,17 @@ auto Scene::init(ruapp::Window *window) -> void {
 }
 
 auto Scene::deinit(ruapp::Window *window) -> void {
+  if (fn_on_end) {
+    fn_on_end(this);
+  }
+
+  arch_storage.delete_all_archetypes();
+  command.discard();
+  render_list.clear();
+
+  ui_node_hashmap.clear();
+  ui_tree.reset();
+
   window->on_resize = nullptr;
   window->on_mouse_enter = nullptr;
   window->on_mouse_leave = nullptr;
@@ -48,26 +60,9 @@ auto Scene::deinit(ruapp::Window *window) -> void {
   window->on_mouse_up = nullptr;
   window->on_mouse_scroll = nullptr;
 
-  if (fn_deinit) {
-    fn_deinit(this);
+  if (fn_on_deinit) {
+    fn_on_deinit(this);
   }
-
-  arch_storage.archetypes.clear();
-  render_list.clear();
-
-  ui_node_hashmap.clear();
-  ui_tree.reset();
-}
-
-auto Scene::destroy_entity(ruecs::Entity entity) -> void {
-  destroy_entities.insert(entity);
-}
-
-auto Scene::update_pre() -> void {
-  for (auto entity : destroy_entities) {
-    arch_storage.delete_entity(entity);
-  }
-  destroy_entities.clear();
 }
 
 auto Scene::update(ruapp::Window *window, double delta) -> void {
@@ -75,8 +70,8 @@ auto Scene::update(ruapp::Window *window, double delta) -> void {
   camera.update();
 
   // scene upate
-  if (fn_update) {
-    fn_update(window, this, delta);
+  if (fn_on_update) {
+    fn_on_update(window, this, delta);
   }
 }
 
@@ -140,11 +135,11 @@ auto SceneManager::change_scene(ruapp::Window *window) -> void {
 
   // init new scene
   cur_scene->init(window);
-  if (cur_scene->fn_init) {
-    cur_scene->fn_init(cur_scene);
+  if (cur_scene->fn_on_init) {
+    cur_scene->fn_on_init(cur_scene);
   }
-  if (cur_scene->fn_start) {
-    cur_scene->fn_start(window, cur_scene);
+  if (cur_scene->fn_on_start) {
+    cur_scene->fn_on_start(window, cur_scene);
   }
 
   // init ui
@@ -168,7 +163,6 @@ auto SceneManager::deinit(ruapp::Window *window) -> void {
 
 auto SceneManager::update(ruapp::Window *window, double delta) -> void {
   if (cur_scene != nullptr) {
-    cur_scene->update_pre();
     cur_scene->update(window, delta);
     cur_scene->render(window, delta);
   }

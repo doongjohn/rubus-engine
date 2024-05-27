@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <unordered_set>
 #include <unordered_map>
 
 #include <rubus-gui/screen.hpp>
@@ -20,7 +19,7 @@ struct Scene {
 
   Camera2d camera;
   ruecs::ArchetypeStorage arch_storage;
-  std::unordered_set<ruecs::Entity> destroy_entities;
+  ruecs::Command command;
   std::vector<Sprite *> render_list;
 
   rugui::Screen ui_screen;
@@ -28,17 +27,17 @@ struct Scene {
   rugui::Tree ui_tree;
   std::unordered_map<std::string, rugui::Node *> ui_node_hashmap;
 
-  std::function<void(Scene *scene)> fn_init;
-  std::function<void(Scene *scene)> fn_deinit;
-  std::function<void(ruapp::Window *window, Scene *scene)> fn_start;
-  std::function<void(ruapp::Window *window, Scene *scene, double delta)> fn_update;
+  std::function<void(Scene *scene)> fn_on_init;
+  std::function<void(Scene *scene)> fn_on_end;
+  std::function<void(Scene *scene)> fn_on_deinit;
+  std::function<void(ruapp::Window *window, Scene *scene)> fn_on_start;
+  std::function<void(ruapp::Window *window, Scene *scene, double delta)> fn_on_update;
+
+  Scene();
 
   auto init(ruapp::Window *window) -> void;
   auto deinit(ruapp::Window *window) -> void;
 
-  auto destroy_entity(ruecs::Entity entity) -> void;
-
-  auto update_pre() -> void;
   auto update(ruapp::Window *window, double delta) -> void;
   auto render(ruapp::Window *window, double delta) -> void;
 };

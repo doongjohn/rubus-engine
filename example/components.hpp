@@ -18,7 +18,7 @@ struct SpriteComponent {
 struct GreenDragonComponent {};
 struct RedDragonComponent {};
 
-struct ElfWarriorComponent {
+struct PlayerComponent {
   int health = 5;
   float speed = 250.f;
 };
