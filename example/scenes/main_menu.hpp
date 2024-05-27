@@ -16,7 +16,11 @@ inline auto new_main_menu_scene(rugame::SceneManager *scene_manager) -> rugame::
 
   scene->fn_on_start = [=](ruapp::Window *window, rugame::Scene *scene) {
     scene->ui_tree.root
-      ->add((new rugui::Node{"title", "Example RPG"})->set_font_size(50)->set_flex_self_align(rugui::FlexAlign::Center))
+      ->add((new rugui::Node{"title", "Example RPG"})
+              ->set_font_size(60)
+              ->set_flex_self_align(rugui::FlexAlign::Center)
+              ->set_margin_t(120)
+              ->set_margin_b(10))
       ->add(
         (new rugui::Node{"start game"})
           ->set_on_mouse_click_in([=](rugui::Node *, rugui::MouseButton button, int, int) {
@@ -26,6 +30,7 @@ inline auto new_main_menu_scene(rugame::SceneManager *scene_manager) -> rugame::
             return false;
           })
           ->set_flex_self_align(rugui::FlexAlign::Center)
+          ->set_margin_b(10)
           ->set_width({rugui::SizeMode::FitContent, 0})
           ->set_height({rugui::SizeMode::FitContent, 0})
           ->add(
