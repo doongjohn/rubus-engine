@@ -150,7 +150,7 @@ inline auto new_game_scene() -> rugame::Scene * {
       auto sprite_component = entity.get_component<SpriteComponent>();
       auto sprite = sprite_component->sprite;
       sprite->transform = glm::translate(glm::mat4{1}, transform->position);
-      scene->render_list.push_back(sprite);
+      scene->layers[0].push_back(sprite);
     }
   };
 

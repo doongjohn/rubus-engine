@@ -20,9 +20,9 @@ struct Scene {
   double delta_time = 0;
 
   Camera2d camera;
+  std::array<std::vector<Sprite *>, 5> layers;
   ruecs::ArchetypeStorage arch_storage;
   ruecs::Command command;
-  std::vector<Sprite *> render_list;
 
   rugui::Screen ui_screen;
   rugui::SkiaRenderer ui_renderer;

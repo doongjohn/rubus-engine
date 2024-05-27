@@ -45,9 +45,11 @@ auto Scene::deinit(ruapp::Window *window) -> void {
     fn_on_end(this);
   }
 
+  for (auto &layer : layers) {
+    layer.clear();
+  }
   arch_storage.delete_all_archetypes();
   command.discard();
-  render_list.clear();
 
   ui_node_hashmap.clear();
   ui_tree.reset();
@@ -90,12 +92,13 @@ auto Scene::render(ruapp::Window *window, double) -> void {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
   // render game
-  // TODO: sorting layer
-  std::ranges::sort(render_list);
-  for (auto sprite : render_list) {
-    sprite->draw(&camera);
+  for (auto &layer : layers) {
+    std::ranges::sort(layer);
+    for (auto sprite : layer) {
+      sprite->draw(&camera);
+    }
+    layer.clear();
   }
-  render_list.clear();
 
   // render gui
   ui_renderer.context->resetContext();
