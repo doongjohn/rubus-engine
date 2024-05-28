@@ -145,7 +145,7 @@ inline auto new_game_scene() -> rugame::Scene * {
 
     scene->command.run();
 
-    // update render list
+    // render
     for_each_entities(&scene->arch_storage, &scene->command, query_render) {
       auto transform = entity.get_component<TransformComponent>();
       auto sprite_component = entity.get_component<SpriteComponent>();
