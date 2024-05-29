@@ -28,29 +28,29 @@ inline auto new_game_scene() -> rugame::Scene * {
     for (auto i = 0; i < 8; ++i) {
       auto position = glm::vec3{rand() % 600 - 300, rand() % 600 - 300, 0.f};
       auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"monster.green_dragon"}};
-      auto e = scene->arch_storage.create_entity();
-      e.add_component<TransformComponent>(position);
-      e.add_component<SpriteComponent>(sprite);
-      e.add_component<GreenDragonComponent>();
+      auto entity = scene->arch_storage.create_entity();
+      entity.add_component<TransformComponent>(position);
+      entity.add_component<SpriteComponent>(sprite);
+      entity.add_component<GreenDragonComponent>();
     }
 
     // spawn RedDragon
     for (auto i = 0; i < 8; ++i) {
       auto position = glm::vec3{rand() % 600 - 300, rand() % 600 - 300, 0.f};
       auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"monster.red_dragon"}};
-      auto e = scene->arch_storage.create_entity();
-      e.add_component<TransformComponent>(position);
-      e.add_component<SpriteComponent>(sprite);
-      e.add_component<RedDragonComponent>();
+      auto entity = scene->arch_storage.create_entity();
+      entity.add_component<TransformComponent>(position);
+      entity.add_component<SpriteComponent>(sprite);
+      entity.add_component<RedDragonComponent>();
     }
 
     // spawn Player
     {
       auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"character.elf_warrior"}};
-      auto e = scene->arch_storage.create_entity();
-      e.add_component<TransformComponent>();
-      e.add_component<SpriteComponent>(sprite);
-      e.add_component<PlayerComponent>();
+      auto entity = scene->arch_storage.create_entity();
+      entity.add_component<TransformComponent>();
+      entity.add_component<SpriteComponent>(sprite);
+      entity.add_component<PlayerComponent>();
     }
 
     // init ui
@@ -69,22 +69,25 @@ inline auto new_game_scene() -> rugame::Scene * {
       scene_manager->set_active_scene("main_menu");
     }
 
+    const auto arch_storage = &scene->arch_storage;
+    const auto command = &scene->command;
+
     if (window->is_key_just_down(VK_RETURN)) {
       // spawn Player
       auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"character.elf_warrior"}};
-      auto e = scene->arch_storage.create_entity();
-      e.add_component<TransformComponent>();
-      e.add_component<SpriteComponent>(sprite);
-      e.add_component<PlayerComponent>();
+      auto entity = arch_storage->create_entity();
+      entity.add_component<TransformComponent>();
+      entity.add_component<SpriteComponent>(sprite);
+      entity.add_component<PlayerComponent>();
     }
 
-    static auto query_player = ruecs::Query{}.with<TransformComponent, PlayerComponent>();
-    static auto query_green_dragon = ruecs::Query{}.with<TransformComponent, GreenDragonComponent>();
-    static auto query_red_dragon = ruecs::Query{}.with<TransformComponent, RedDragonComponent>();
-    static auto query_render = ruecs::Query{}.with<TransformComponent, SpriteComponent>();
+    static auto query_player = ruecs::Query{arch_storage}.with<TransformComponent, PlayerComponent>();
+    static auto query_green_dragon = ruecs::Query{arch_storage}.with<TransformComponent, GreenDragonComponent>();
+    static auto query_red_dragon = ruecs::Query{arch_storage}.with<TransformComponent, RedDragonComponent>();
+    static auto query_render = ruecs::Query{arch_storage}.with<TransformComponent, SpriteComponent>();
 
     // update player
-    for_each_entities(&scene->arch_storage, &scene->command, query_player) {
+    for_each_entities(arch_storage, command, query_player) {
       auto transform = entity.get_component<TransformComponent>();
       auto player = entity.get_component<PlayerComponent>();
 
