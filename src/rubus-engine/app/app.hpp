@@ -42,9 +42,14 @@ struct Window {
   std::atomic_bool should_close = false;
   std::atomic_bool send_resume_message = false;
 
+  int mouse_x = 0;
+  int mouse_y = 0;
+  std::array<bool, 3> mouse_states{};
+  std::array<uint8_t, 3> mouse_just_states{};
+
   // https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-  std::array<bool, 0xFE + 1> key_states;
-  std::array<uint8_t, 0xFE + 1> key_just_states;
+  std::array<bool, 0xFE + 1> key_states{};
+  std::array<uint8_t, 0xFE + 1> key_just_states{};
 
   std::function<void(Window *, int, int)> on_resize;
   std::function<void(Window *, int, int)> on_mouse_enter;
@@ -68,6 +73,11 @@ struct Window {
 
   auto run(const std::function<void(Window *, double)> &fn_update) -> void;
 
+  auto is_mouse_down(rugui::MouseButton mouse_button) -> bool;
+  auto is_mouse_up(rugui::MouseButton mouse_button) -> bool;
+  auto is_mouse_just_down(rugui::MouseButton mouse_button) -> bool;
+  auto is_mouse_just_up(rugui::MouseButton mouse_button) -> bool;
+
   auto is_key_down(uint32_t keycode) -> bool;
   auto is_key_up(uint32_t keycode) -> bool;
   auto is_key_just_down(uint32_t keycode) -> bool;
@@ -84,4 +94,4 @@ auto get_tick_per_sec() -> double;
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-} // namespace app
+} // namespace ruapp

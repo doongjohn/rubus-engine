@@ -332,9 +332,26 @@ auto Window::run(const std::function<void(Window *, double)> &fn_update) -> void
     // update
     fn_update(this, delta_time);
 
-    // reset key_just_states
+    // reset just states
+    std::memset(mouse_just_states.data(), 0, mouse_just_states.size());
     std::memset(key_just_states.data(), 0, key_just_states.size());
   }
+}
+
+auto Window::is_mouse_down(rugui::MouseButton mouse_button) -> bool {
+  return mouse_states[(int)mouse_button];
+}
+
+auto Window::is_mouse_up(rugui::MouseButton mouse_button) -> bool {
+  return not mouse_states[(int)mouse_button];
+}
+
+auto Window::is_mouse_just_down(rugui::MouseButton mouse_button) -> bool {
+  return mouse_just_states[(int)mouse_button] == 1;
+}
+
+auto Window::is_mouse_just_up(rugui::MouseButton mouse_button) -> bool {
+  return mouse_just_states[(int)mouse_button] == 2;
 }
 
 auto Window::is_key_down(uint32_t keycode) -> bool {
@@ -342,7 +359,7 @@ auto Window::is_key_down(uint32_t keycode) -> bool {
 }
 
 auto Window::is_key_up(uint32_t keycode) -> bool {
-  return !key_states[keycode];
+  return not key_states[keycode];
 }
 
 auto Window::is_key_just_down(uint32_t keycode) -> bool {
@@ -543,6 +560,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);
+    window->mouse_x = x;
+    window->mouse_y = y;
     if (window->on_mouse_move) {
       window->on_mouse_move(window, x, y);
     }
@@ -552,6 +571,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   case WM_LBUTTONDOWN: {
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);
+
+    if (not window->mouse_states[(int)rugui::MouseButton::Left]) {
+      window->mouse_just_states[(int)rugui::MouseButton::Left] = 1;
+    }
+    window->mouse_states[(int)rugui::MouseButton::Left] = true;
+
     if (window->on_mouse_down) {
       window->on_mouse_down(window, rugui::MouseButton::Left, x, y);
     }
@@ -559,6 +584,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   case WM_LBUTTONUP: {
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);
+
+    if (window->mouse_states[(int)rugui::MouseButton::Left]) {
+      window->mouse_just_states[(int)rugui::MouseButton::Left] = 2;
+    }
+    window->mouse_states[(int)rugui::MouseButton::Left] = false;
+
     if (window->on_mouse_up) {
       window->on_mouse_up(window, rugui::MouseButton::Left, x, y);
     }
@@ -568,6 +599,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   case WM_RBUTTONDOWN: {
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);
+
+    if (not window->mouse_states[(int)rugui::MouseButton::Right]) {
+      window->mouse_just_states[(int)rugui::MouseButton::Right] = 1;
+    }
+    window->mouse_states[(int)rugui::MouseButton::Right] = true;
+
     if (window->on_mouse_down) {
       window->on_mouse_down(window, rugui::MouseButton::Right, x, y);
     }
@@ -575,6 +612,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   case WM_RBUTTONUP: {
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);
+
+    if (window->mouse_states[(int)rugui::MouseButton::Right]) {
+      window->mouse_just_states[(int)rugui::MouseButton::Right] = 2;
+    }
+    window->mouse_states[(int)rugui::MouseButton::Right] = false;
+
     if (window->on_mouse_up) {
       window->on_mouse_up(window, rugui::MouseButton::Right, x, y);
     }
@@ -584,6 +627,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   case WM_MBUTTONDOWN: {
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);
+
+    if (not window->mouse_states[(int)rugui::MouseButton::Middle]) {
+      window->mouse_just_states[(int)rugui::MouseButton::Middle] = 1;
+    }
+    window->mouse_states[(int)rugui::MouseButton::Middle] = true;
+
     if (window->on_mouse_down) {
       window->on_mouse_down(window, rugui::MouseButton::Middle, x, y);
     }
@@ -591,6 +640,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   case WM_MBUTTONUP: {
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);
+
+    if (window->mouse_states[(int)rugui::MouseButton::Middle]) {
+      window->mouse_just_states[(int)rugui::MouseButton::Middle] = 2;
+    }
+    window->mouse_states[(int)rugui::MouseButton::Middle] = false;
+
     if (window->on_mouse_up) {
       window->on_mouse_up(window, rugui::MouseButton::Middle, x, y);
     }
@@ -608,7 +663,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   case WM_KEYDOWN: {
     const auto keycode = wParam;
 
-    if (!window->key_states[keycode]) {
+    if (not window->key_states[keycode]) {
       window->key_just_states[keycode] = 1;
     }
     window->key_states[keycode] = true;

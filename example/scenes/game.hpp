@@ -1,149 +1,133 @@
 #pragma once
 
-#include "glm/ext/matrix_transform.hpp"
+#include <glm/ext/matrix_transform.hpp>
 
 #include <rubus-engine/game/scene.hpp>
 #include <rubus-engine/game/resource.hpp>
+
+#include "../game/data.hpp"
 #include "../components.hpp"
 
-inline auto new_game_scene() -> rugame::Scene * {
+inline auto new_game_scene(GameData *game_data) -> rugame::Scene * {
   auto scene = new rugame::Scene{};
 
   scene->fn_on_init = [](rugame::Scene *) {
-    rugame::ResourceManager::load_texture2d_pixel("character.elf_warrior", "assets/character/elf_warrior.png");
+    // texture: backgrounds
+    rugame::ResourceManager::load_texture2d_pixel("bg.plains-sheet1", "assets/bg/plains-sheet1.png");
+    rugame::ResourceManager::load_texture2d_pixel("bg.plains-sheet2", "assets/bg/plains-sheet2.png");
+    rugame::ResourceManager::load_texture2d_pixel("bg.plains-sheet3", "assets/bg/plains-sheet3.png");
+    rugame::ResourceManager::load_texture2d_pixel("bg.plains-sheet4", "assets/bg/plains-sheet4.png");
+
+    // texture: characters
+    rugame::ResourceManager::load_texture2d_pixel("character.human_warrior", "assets/character/human_warrior.png");
+    rugame::ResourceManager::load_texture2d_pixel("character.human_priest", "assets/character/human_priest.png");
+    rugame::ResourceManager::load_texture2d_pixel("character.elf_archer", "assets/character/elf_archer.png");
+    rugame::ResourceManager::load_texture2d_pixel("character.elf_mage", "assets/character/elf_mage.png");
+    rugame::ResourceManager::load_texture2d_pixel("character.darkelf_assassin",
+                                                  "assets/character/darkelf_assassin.png");
+
+    // texture: monsters
     rugame::ResourceManager::load_texture2d_pixel("monster.green_dragon", "assets/monster/green_dragon.png");
     rugame::ResourceManager::load_texture2d_pixel("monster.red_dragon", "assets/monster/red_dragon.png");
+
+    // material: sprite
     rugame::SpriteMaterial::init();
   };
 
-  scene->fn_on_deinit = [](rugame::Scene *) {
-    rugame::ResourceManager::unload_texture2d();
+  scene->fn_on_deinit = [=](rugame::Scene *) {
+    rugame::ResourceManager::unload_texture2d_all();
     rugame::SpriteMaterial::deinit();
+    game_data->reset();
   };
 
-  scene->fn_on_start = [](ruapp::Window *, rugame::SceneManager *, rugame::Scene *scene) {
-    std::srand(std::time(nullptr));
-
-    // spawn GreenDragon
-    for (auto i = 0; i < 8; ++i) {
-      auto position = glm::vec3{rand() % 600 - 300, rand() % 600 - 300, 0.f};
-      auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"monster.green_dragon"}};
-      auto entity = scene->arch_storage.create_entity();
-      entity.add_component<TransformComponent>(position);
-      entity.add_component<SpriteComponent>(sprite);
-      entity.add_component<GreenDragonComponent>();
-    }
-
-    // spawn RedDragon
-    for (auto i = 0; i < 8; ++i) {
-      auto position = glm::vec3{rand() % 600 - 300, rand() % 600 - 300, 0.f};
-      auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"monster.red_dragon"}};
-      auto entity = scene->arch_storage.create_entity();
-      entity.add_component<TransformComponent>(position);
-      entity.add_component<SpriteComponent>(sprite);
-      entity.add_component<RedDragonComponent>();
-    }
-
-    // spawn Player
+  scene->fn_on_start = [=](ruapp::Window *, rugame::SceneManager *, rugame::Scene *scene) {
+    // spawn backgrounds
     {
-      auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"character.elf_warrior"}};
-      auto entity = scene->arch_storage.create_entity();
-      entity.add_component<TransformComponent>();
-      entity.add_component<SpriteComponent>(sprite);
-      entity.add_component<PlayerComponent>();
+      const auto w = 320.f * 3.5f;
+      const auto h = 180.f * 3.5f;
+      for (auto i = 1; i <= 4; ++i) {
+        auto entity = scene->arch_storage.create_entity();
+        auto position = glm::vec3{0, 0, 0};
+        auto texture_id = std::format("bg.plains-sheet{}", i);
+        auto sprite = new rugame::Sprite{{0.5f, 0.5f}, w, h, rugame::SpriteMaterial{texture_id}};
+        sprite->zorder = -i - 1;
+        entity.add_component<TransformComponent>(position);
+        entity.add_component<SpriteComponent>(sprite);
+      }
     }
 
-    // init ui
-    scene->ui_node_hashmap.insert(
-      {"player",
-       (new rugui::Node{"player", "health: "})->set_font_size(30)->set_flex_self_align(rugui::FlexAlign::Center)});
+    // spawn characters
+    {
+      auto spawn_pos = std::array{
+        glm::vec3{-150, -130, 0},
+        glm::vec3{-210, -130, 0},
+        glm::vec3{-270, -130, 0},
+        glm::vec3{-330, -130, 0},
+      };
 
-    scene->ui_tree.root
-      ->add(
-        (new rugui::Node{"title", "Example game"})->set_font_size(50)->set_flex_self_align(rugui::FlexAlign::Center))
-      ->add(scene->ui_node_hashmap.at("player"));
+      const auto w = 50.f;
+      const auto h = 50.f;
+      for (auto i = 0; i < 4; ++i) {
+        auto character = game_data->picked_characters[i];
+        auto entity = scene->arch_storage.create_entity();
+        auto position = spawn_pos[i];
+        auto sprite = new rugame::Sprite{{0.5f, 0.5f}, w, h, rugame::SpriteMaterial{character.texture_id}};
+        entity.add_component<TransformComponent>(position);
+        entity.add_component<SpriteComponent>(sprite);
+        entity.add_component<CharacterComponent>(character.name, character.health, character.ap);
+      }
+    }
+
+    // spawn monster
+    {
+      auto entity = scene->arch_storage.create_entity();
+      auto position = glm::vec3{150, -130 + 25, 0};
+      auto sprite = new rugame::Sprite{{0.5f, 0.5f}, -90, 90, rugame::SpriteMaterial{"monster.red_dragon"}};
+      entity.add_component<TransformComponent>(position);
+      entity.add_component<SpriteComponent>(sprite);
+    }
+
+    // initialize ui
+    auto node_character_data = (new rugui::Node{"character_data"})
+                                 ->set_display_mode(rugui::DisplayMode::Hidden)
+                                 ->set_margin(10)
+                                 ->set_width({rugui::SizeMode::FitContent, 0})
+                                 ->set_height({rugui::SizeMode::FitContent, 0});
+    auto node_character_name = (new rugui::Node{"character_name", "Character name"})->set_font_size(25);
+    auto node_character_hp = (new rugui::Node{"character_hp", "HP: 1"})->set_font_size(25);
+    auto node_character_ap = (new rugui::Node{"character_ap", "AP: 1"})->set_font_size(25);
+
+    scene->ui_nodes.insert({"character_data", node_character_data});
+    scene->ui_nodes.insert({"character_name", node_character_name});
+    scene->ui_nodes.insert({"character_hp", node_character_hp});
+    scene->ui_nodes.insert({"character_ap", node_character_ap});
+
+    scene->ui_tree.root->add(node_character_data //
+                               ->add(node_character_name)
+                               ->add(node_character_hp)
+                               ->add(node_character_ap));
   };
 
   scene->fn_on_update = [](ruapp::Window *window, rugame::SceneManager *scene_manager, rugame::Scene *scene, double) {
     if (window->is_key_just_down(VK_ESCAPE)) {
-      scene_manager->set_active_scene("main_menu");
+      scene_manager->set_active_scene("menu:main");
     }
 
-    const auto arch_storage = &scene->arch_storage;
-    const auto command = &scene->command;
+    static auto query_character = ruecs::Query{&scene->arch_storage}.with<TransformComponent, CharacterComponent>();
+    static auto query_render = ruecs::Query{&scene->arch_storage}.with<TransformComponent, SpriteComponent>();
 
-    if (window->is_key_just_down(VK_RETURN)) {
-      // spawn Player
-      auto sprite = new rugame::Sprite{{0.5f, 0.5f}, 100.f, 100.f, rugame::SpriteMaterial{"character.elf_warrior"}};
-      auto entity = arch_storage->create_entity();
-      entity.add_component<TransformComponent>();
-      entity.add_component<SpriteComponent>(sprite);
-      entity.add_component<PlayerComponent>();
-    }
-
-    static auto query_player = ruecs::Query{arch_storage}.with<TransformComponent, PlayerComponent>();
-    static auto query_green_dragon = ruecs::Query{arch_storage}.with<TransformComponent, GreenDragonComponent>();
-    static auto query_red_dragon = ruecs::Query{arch_storage}.with<TransformComponent, RedDragonComponent>();
-    static auto query_render = ruecs::Query{arch_storage}.with<TransformComponent, SpriteComponent>();
-
-    // update player
-    for_each_entities(arch_storage, command, query_player) {
+    for_each_entities(&scene->arch_storage, &scene->command, query_character) {
       auto transform = entity.get_component<TransformComponent>();
-      auto player = entity.get_component<PlayerComponent>();
-
-      auto input_dir = glm::vec2{0.f, 0.f};
-      if (window->is_key_down(VK_RIGHT)) {
-        input_dir.x = +1;
-      }
-      if (window->is_key_down(VK_LEFT)) {
-        input_dir.x = -1;
-      }
-      if (window->is_key_down(VK_UP)) {
-        input_dir.y = +1;
-      }
-      if (window->is_key_down(VK_DOWN)) {
-        input_dir.y = -1;
-      }
-      if (glm::length(input_dir) > 0) {
-        input_dir = glm::normalize(input_dir);
-      }
-
-      const auto movement = input_dir * (float)(player->speed * scene->delta);
-      transform->position += glm::vec3{movement, 0.f};
-    }
-
-    // handle collision
-    for_each_entities(&scene->arch_storage, &scene->command, query_player) {
-      auto player_entity = entity;
-      auto player_transform = entity.get_component<TransformComponent>();
-      auto player = entity.get_component<PlayerComponent>();
-
-      // green dragon
-      for_each_entities(&scene->arch_storage, &scene->command, query_green_dragon) {
-        auto dragon_transform = entity.get_component<TransformComponent>();
-        if (glm::distance(dragon_transform->position, player_transform->position) < 50.f) {
-          scene->command.delete_entity(entity);
-          player->health += 1;
+      auto character = entity.get_component<CharacterComponent>();
+      if (window->is_mouse_just_down(rugui::MouseButton::Left)) {
+        auto mouse_world_pos = scene->camera.screen_to_world_space({window->mouse_x, window->mouse_y});
+        if (glm::distance(transform->position, {mouse_world_pos, 0}) <= 24.f) {
+          scene->ui_nodes.at("character_data")->set_display_mode(rugui::DisplayMode::Shown);
+          scene->ui_nodes.at("character_name")->text = character->name;
+          scene->ui_nodes.at("character_hp")->text = std::format("HP: {}", character->health);
+          scene->ui_nodes.at("character_ap")->text = std::format("AP: {}", character->ap);
         }
       }
-
-      // red dragon
-      for_each_entities(&scene->arch_storage, &scene->command, query_red_dragon) {
-        auto dragon_transform = entity.get_component<TransformComponent>();
-        if (glm::distance(dragon_transform->position, player_transform->position) < 50.f) {
-          scene->command.delete_entity(entity);
-          player->health -= 1;
-          if (player->health == 0) {
-            scene->command.delete_entity(player_entity);
-          }
-        }
-      }
-    }
-
-    // update ui
-    for_each_entities(&scene->arch_storage, &scene->command, query_player) {
-      auto player = entity.get_component<PlayerComponent>();
-      scene->ui_node_hashmap.at("player")->text = std::format("health: {}", player->health);
     }
 
     scene->command.run();
@@ -154,7 +138,7 @@ inline auto new_game_scene() -> rugame::Scene * {
       auto sprite_component = entity.get_component<SpriteComponent>();
       auto sprite = sprite_component->sprite;
       sprite->transform = glm::translate(glm::mat4{1}, transform->position);
-      scene->layers[0].push_back(sprite);
+      scene->sprites.push_back(sprite);
     }
   };
 

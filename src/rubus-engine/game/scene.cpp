@@ -8,7 +8,7 @@ Scene::Scene() : command{&arch_storage} {}
 
 auto Scene::init(ruapp::Window *window) -> void {
   screen = Screen{(float)window->width, (float)window->height};
-  camera = Camera2d{&screen, {0.f, 0.f, 3.f}};
+  camera = Camera2d{&screen, {0.f, 0.f, 10.f}};
 
   ui_screen.set_size(window->width, window->height);
   ui_renderer.init(&ui_screen);
@@ -47,14 +47,12 @@ auto Scene::deinit(ruapp::Window *window) -> void {
     fn_on_end(this);
   }
 
-  for (auto &layer : layers) {
-    layer.clear();
-  }
+  sprites.clear();
 
   arch_storage.delete_all_archetypes();
   command.discard();
 
-  ui_node_hashmap.clear();
+  ui_nodes.clear();
   ui_tree.reset();
 
   window->on_resize = nullptr;
@@ -94,14 +92,14 @@ auto Scene::render(ruapp::Window *window, double) -> void {
   glClearColor(1.f, 1.f, 1.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-  // render game
-  for (auto &layer : layers) {
-    std::ranges::sort(layer);
-    for (auto sprite : layer) {
-      sprite->draw(&camera);
-    }
-    layer.clear();
+  // render sprites
+  std::ranges::sort(sprites, [](Sprite *a, Sprite *b) {
+    return a->zorder > b->zorder;
+  });
+  for (auto sprite : sprites) {
+    sprite->draw(&camera);
   }
+  sprites.clear();
 
   // render gui
   ui_renderer.context->resetContext();

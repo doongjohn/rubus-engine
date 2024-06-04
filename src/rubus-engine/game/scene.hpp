@@ -18,7 +18,7 @@ struct SceneManager;
 struct Scene {
   Screen screen;
   Camera2d camera;
-  std::array<std::vector<Sprite *>, 5> layers;
+  std::vector<Sprite *> sprites;
 
   ruecs::ArchetypeStorage arch_storage;
   ruecs::Command command;
@@ -26,7 +26,7 @@ struct Scene {
   rugui::Screen ui_screen;
   rugui::SkiaRenderer ui_renderer;
   rugui::Tree ui_tree;
-  std::unordered_map<std::string, rugui::Node *> ui_node_hashmap;
+  std::unordered_map<std::string, rugui::Node *> ui_nodes;
 
   double delta = 0;
 

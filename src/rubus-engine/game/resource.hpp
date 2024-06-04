@@ -17,7 +17,7 @@ struct ResourceManager {
 
   static auto load_texture2d_pixel(const std::string &key, const char *file_path) -> void;
   static auto unload_texture2d(const std::string &key) -> void;
-  static auto unload_texture2d() -> void;
+  static auto unload_texture2d_all() -> void;
 };
 
 } // namespace game

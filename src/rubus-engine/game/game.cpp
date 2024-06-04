@@ -27,6 +27,10 @@ auto Camera2d::world_to_screen_space(glm::mat4 world_transform) -> glm::vec2 {
   return graphics::world_to_screen_space(screen->width, screen->height, projection * view * world_transform);
 }
 
+auto Camera2d::screen_to_world_space(glm::vec2 screen_pos) -> glm::vec2 {
+  return graphics::screen_to_world_space(screen->width, screen->height, projection * view, screen_pos);
+}
+
 SpriteMaterial::SpriteMaterial(std::string texture) : texture{std::move(texture)} {}
 
 auto SpriteMaterial::init() -> void {
@@ -73,4 +77,4 @@ auto Sprite::draw(Camera2d *camera) -> void {
   material.unbind();
 }
 
-} // namespace game
+} // namespace rugame

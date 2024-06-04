@@ -50,11 +50,11 @@ auto ResourceManager::unload_texture2d(const std::string &key) -> void {
   }
 }
 
-auto ResourceManager::unload_texture2d() -> void {
+auto ResourceManager::unload_texture2d_all() -> void {
   for (const auto &[key, texture_res] : texture2d) {
     glDeleteTextures(1, &texture_res.handle);
   }
   texture2d.clear();
 }
 
-} // namespace game
+} // namespace rugame

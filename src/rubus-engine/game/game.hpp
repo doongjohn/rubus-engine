@@ -25,6 +25,7 @@ struct Camera2d {
 
   auto update() -> void;
   auto world_to_screen_space(glm::mat4 world_transform) -> glm::vec2;
+  auto screen_to_world_space(glm::vec2 screen_pos) -> glm::vec2;
 };
 
 struct SpriteMaterial {
@@ -43,6 +44,7 @@ struct SpriteMaterial {
 
 struct Sprite {
   glm::mat4 transform = glm::mat4{1.f};
+  uint32_t zorder = 0;
 
   graphics::Mesh mesh;
   SpriteMaterial material;
@@ -54,4 +56,4 @@ struct Sprite {
   auto draw(Camera2d *camera) -> void;
 };
 
-} // namespace game
+} // namespace rugame

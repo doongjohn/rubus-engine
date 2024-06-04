@@ -23,6 +23,16 @@ auto world_to_screen_space(float width, float height, glm::mat4 mvp, glm::vec2 p
   return screen_space;
 }
 
+auto screen_to_world_space(float width, float height, glm::mat4 vp, glm::vec2 pos) -> glm::vec2 {
+  auto x_ndc = (2.0f * pos.x) / width - 1.0f;
+  auto y_ndc = 1.0f - (2.0f * pos.y) / height;
+  auto inverse_vp = glm::inverse(vp);
+  auto clip_space = glm::vec4(x_ndc, y_ndc, 0.0f, 1.0f); // convert from ndc to clip space
+  auto world_space = inverse_vp * clip_space; // apply the inverse mvp matrix to convert clip space to world space
+  auto world_pos = glm::vec2(world_space) / world_space.w; // perform perspective division to get world coordinates
+  return {world_pos.x, world_pos.y};
+}
+
 auto compile_shader(int shader_type, std::span<const char *> shader_src) -> uint32_t {
   auto shader = uint32_t{};
   shader = glCreateShader(shader_type);

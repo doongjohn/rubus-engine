@@ -25,7 +25,7 @@ inline auto new_main_menu_scene() -> rugame::Scene * {
         (new rugui::Node{"start game"})
           ->set_on_mouse_click_in([=](rugui::Node *, rugui::MouseButton button, int, int) {
             if (button == rugui::MouseButton::Left) {
-              scene_manager->set_active_scene("game");
+              scene_manager->set_active_scene("menu:character_selection");
             }
             return false;
           })
@@ -48,12 +48,6 @@ inline auto new_main_menu_scene() -> rugame::Scene * {
           ->set_height({rugui::SizeMode::FitContent, 0})
           ->add(
             (new rugui::Node{"text", "Exit Game"})->set_font_size(30)->set_flex_self_align(rugui::FlexAlign::Center)));
-  };
-
-  scene->fn_on_update = [](ruapp::Window *window, rugame::SceneManager *scene_manager, rugame::Scene *, double) {
-    if (window->is_key_just_down(VK_ESCAPE)) {
-      scene_manager->set_active_scene("game");
-    }
   };
 
   return scene;

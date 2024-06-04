@@ -18,6 +18,7 @@ struct Mesh {
 };
 
 auto world_to_screen_space(float width, float height, glm::mat4 mvp, glm::vec2 pos = {0, 0}) -> glm::vec2;
+auto screen_to_world_space(float width, float height, glm::mat4 mvp, glm::vec2 pos) -> glm::vec2;
 
 auto compile_shader(int shader_type, std::span<const char *> shader_src) -> uint32_t;
 auto link_shaders(std::initializer_list<uint32_t> shaders) -> uint32_t;

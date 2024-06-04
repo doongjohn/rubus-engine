@@ -15,10 +15,8 @@ struct SpriteComponent {
   }
 };
 
-struct GreenDragonComponent {};
-struct RedDragonComponent {};
-
-struct PlayerComponent {
-  int health = 5;
-  float speed = 250.f;
+struct CharacterComponent {
+  std::string name;
+  int health = 1;
+  int ap = 1;
 };
