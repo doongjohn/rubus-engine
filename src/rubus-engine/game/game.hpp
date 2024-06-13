@@ -44,7 +44,7 @@ struct SpriteMaterial {
 
 struct Sprite {
   glm::mat4 transform = glm::mat4{1.f};
-  uint32_t zorder = 0;
+  int32_t zorder = 0;
 
   graphics::Mesh mesh;
   SpriteMaterial material;

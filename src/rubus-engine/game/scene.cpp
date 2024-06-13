@@ -94,7 +94,7 @@ auto Scene::render(ruapp::Window *window, double) -> void {
 
   // render sprites
   std::ranges::sort(sprites, [](Sprite *a, Sprite *b) {
-    return a->zorder > b->zorder;
+    return a->zorder < b->zorder;
   });
   for (auto sprite : sprites) {
     sprite->draw(&camera);

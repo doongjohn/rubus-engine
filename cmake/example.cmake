@@ -10,6 +10,7 @@ target_sources(
   rubus-engine-example-game
   PRIVATE
     example/main.cpp
+    example/game/data.cpp
 )
 
 target_compile_options(

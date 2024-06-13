@@ -41,6 +41,7 @@ struct Scene {
   Callback3 fn_on_update;
 
   Scene();
+  virtual ~Scene() {}
 
   auto init(ruapp::Window *window) -> void;
   auto deinit(ruapp::Window *window) -> void;

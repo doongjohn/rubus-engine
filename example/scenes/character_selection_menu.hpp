@@ -34,7 +34,7 @@ inline auto new_character_selection_menu_scene(GameData *game_data) -> rugame::S
     }
   };
 
-  auto ui_state = new UiState{};
+  auto ui_state = new UiState{}; // leaking
 
   scene->fn_on_init = [](rugame::Scene *) {
     rugame::SpriteMaterial::init();
@@ -46,11 +46,34 @@ inline auto new_character_selection_menu_scene(GameData *game_data) -> rugame::S
   };
 
   scene->fn_on_start = [=](ruapp::Window *, rugame::SceneManager *scene_manager, rugame::Scene *scene) {
+    auto skimg_characters = std::unordered_map<std::string, sk_sp<SkImage>>{
+      {
+        "human_warrior",
+        SkImages::DeferredFromEncodedData(SkData::MakeFromFileName("assets/character/human_warrior.png")),
+      },
+      {
+        "human_priest",
+        SkImages::DeferredFromEncodedData(SkData::MakeFromFileName("assets/character/human_priest.png")),
+      },
+      {
+        "elf_archer",
+        SkImages::DeferredFromEncodedData(SkData::MakeFromFileName("assets/character/elf_archer.png")),
+      },
+      {
+        "elf_mage",
+        SkImages::DeferredFromEncodedData(SkData::MakeFromFileName("assets/character/elf_mage.png")),
+      },
+      {
+        "darkelf_assassin",
+        SkImages::DeferredFromEncodedData(SkData::MakeFromFileName("assets/character/darkelf_assassin.png")),
+      },
+    };
+
     auto node_char_image = (new rugui::Node{"character_image"})
                              ->set_margin(10)
-                             ->set_color(SkColors::kBlue)
-                             ->set_width({rugui::SizeMode::Self, 120})
-                             ->set_height({rugui::SizeMode::Self, 120});
+                             ->set_width({rugui::SizeMode::Self, 112})
+                             ->set_height({rugui::SizeMode::Self, 112})
+                             ->set_image_sampling(SkSamplingOptions{SkFilterMode::kNearest});
 
     auto node_char_name = (new rugui::Node{"character_name"})
                             ->set_margin(10)
@@ -62,7 +85,7 @@ inline auto new_character_selection_menu_scene(GameData *game_data) -> rugame::S
                             ->set_margin(5)
                             ->set_width({rugui::SizeMode::Parent, 1})
                             ->set_height({rugui::SizeMode::Parent, 1})
-                            ->add((new rugui::Node{"text", "이 캐릭터는 매우 강하다."})->set_font_size(20));
+                            ->add((new rugui::Node{"text", "Character description"})->set_font_size(20));
 
     auto node_back_button = (new rugui::Node{"back_button"})
                               ->set_color(SkColors::kLtGray)
@@ -99,7 +122,7 @@ inline auto new_character_selection_menu_scene(GameData *game_data) -> rugame::S
 
     // initial character info
     auto character_data = game_data->character_data.at(ui_state->character_id[0]);
-    // TODO: node_char_image
+    node_char_image->set_image(skimg_characters.at(character_data.id));
     node_char_name->children[0]->text = character_data.name;
     node_char_desc->children[0]->text = character_data.desc;
 
@@ -114,18 +137,20 @@ inline auto new_character_selection_menu_scene(GameData *game_data) -> rugame::S
       return (new rugui::Node{node_name})
         ->set_color(SkColors::kTransparent)
         ->set_margin(10)
-        ->set_width({rugui::SizeMode::Self, 120})
-        ->set_height({rugui::SizeMode::Self, 120})
+        ->set_width({rugui::SizeMode::Self, 112})
+        ->set_height({rugui::SizeMode::Self, 112})
         ->add((new rugui::Node{"button"})
                 ->set_color(SkColors::kLtGray)
                 ->set_margin(5)
                 ->set_width({rugui::SizeMode::Parent, 1})
                 ->set_height({rugui::SizeMode::Parent, 1})
+                ->set_image(skimg_characters.at(ui_state->character_id.at(index)))
+                ->set_image_sampling(SkSamplingOptions{SkFilterMode::kNearest})
                 ->set_on_mouse_click_in([=](rugui::Node *node, rugui::MouseButton button, int, int) {
                   if (button == rugui::MouseButton::Left) {
                     // update character info
                     auto character_data = game_data->character_data.at(ui_state->character_id[index]);
-                    // TODO: node_char_image
+                    node_char_image->set_image(node->style.image);
                     node_char_name->children[0]->text = character_data.name;
                     node_char_desc->children[0]->text = character_data.desc;
 
@@ -157,52 +182,51 @@ inline auto new_character_selection_menu_scene(GameData *game_data) -> rugame::S
                 }));
     };
 
-    scene->ui_tree
-      .root //
-      ->add((new rugui::Node{"bg"})
-              ->set_margin(10)
-              ->set_width({rugui::SizeMode::Parent, 1})
-              ->set_height({rugui::SizeMode::Parent, 1})
-              ->set_flex_dir(rugui::FlexDir::Row)
-              ->add((new rugui::Node{"left_panel"})
-                      ->set_width({rugui::SizeMode::Parent, 0.5f})
-                      ->set_height({rugui::SizeMode::Parent, 1})
-                      ->set_flex_dir(rugui::FlexDir::Row)
-                      ->set_flex_wrap(rugui::FlexWrap::Wrap)
-                      ->add((new rugui::Node{"title"})
-                              ->set_width({rugui::SizeMode::Parent, 1})
-                              ->set_height({rugui::SizeMode::FitContent, 0})
-                              ->set_flex_items_align(rugui::FlexAlign::Center)
-                              ->add((new rugui::Node{"text", "4명의 캐릭터를 선택하세요."})->set_font_size(25)))
-                      ->add(fn_make_character_button("0", 0))
-                      ->add(fn_make_character_button("1", 1))
-                      ->add(fn_make_character_button("2", 2))
-                      ->add(fn_make_character_button("3", 3))
-                      ->add(fn_make_character_button("4", 4)))
-              ->add((new rugui::Node{"right_panel"})
-                      ->set_width({rugui::SizeMode::Parent, 0.5f})
-                      ->set_height({rugui::SizeMode::Parent, 1})
-                      ->add((new rugui::Node{"character_info"})
-                              ->set_width({rugui::SizeMode::Parent, 1})
-                              ->set_height({rugui::SizeMode::Parent, 0.85f})
-                              ->add((new rugui::Node{"top_section"})
-                                      ->set_flex_dir(rugui::FlexDir::Row)
-                                      ->set_width({rugui::SizeMode::Parent, 1})
-                                      ->set_height({rugui::SizeMode::Parent, 0.3f})
-                                      ->add(node_char_image)
-                                      ->add(node_char_name))
-                              ->add((new rugui::Node{"bot_section"})
-                                      ->set_color(SkColors::kLtGray)
-                                      ->set_margin(10)
-                                      ->set_width({rugui::SizeMode::Parent, 1})
-                                      ->set_height({rugui::SizeMode::Parent, 0.7f})
-                                      ->add(node_char_desc)))
-                      ->add((new rugui::Node{"menu_buttons"})
-                              ->set_width({rugui::SizeMode::Parent, 1})
-                              ->set_height({rugui::SizeMode::Parent, 0.15f})
-                              ->set_flex_dir(rugui::FlexDir::Row)
-                              ->add(node_back_button)
-                              ->add(node_start_button))));
+    scene->ui_tree.root->add(
+      (new rugui::Node{"bg"})
+        ->set_margin(10)
+        ->set_width({rugui::SizeMode::Parent, 1})
+        ->set_height({rugui::SizeMode::Parent, 1})
+        ->set_flex_dir(rugui::FlexDir::Row)
+        ->add((new rugui::Node{"left_panel"})
+                ->set_width({rugui::SizeMode::Parent, 0.5f})
+                ->set_height({rugui::SizeMode::Parent, 1})
+                ->set_flex_dir(rugui::FlexDir::Row)
+                ->set_flex_wrap(rugui::FlexWrap::Wrap)
+                ->add((new rugui::Node{"title"})
+                        ->set_width({rugui::SizeMode::Parent, 1})
+                        ->set_height({rugui::SizeMode::FitContent, 0})
+                        ->set_flex_items_align(rugui::FlexAlign::Center)
+                        ->add((new rugui::Node{"text", "4명의 캐릭터를 선택하세요."})->set_font_size(25)))
+                ->add(fn_make_character_button("0", 0))
+                ->add(fn_make_character_button("1", 1))
+                ->add(fn_make_character_button("2", 2))
+                ->add(fn_make_character_button("3", 3))
+                ->add(fn_make_character_button("4", 4)))
+        ->add((new rugui::Node{"right_panel"})
+                ->set_width({rugui::SizeMode::Parent, 0.5f})
+                ->set_height({rugui::SizeMode::Parent, 1})
+                ->add((new rugui::Node{"character_info"})
+                        ->set_width({rugui::SizeMode::Parent, 1})
+                        ->set_height({rugui::SizeMode::Parent, 0.85f})
+                        ->add((new rugui::Node{"top_section"})
+                                ->set_flex_dir(rugui::FlexDir::Row)
+                                ->set_width({rugui::SizeMode::Parent, 1})
+                                ->set_height({rugui::SizeMode::Parent, 0.3f})
+                                ->add(node_char_image)
+                                ->add(node_char_name))
+                        ->add((new rugui::Node{"bot_section"})
+                                ->set_color(SkColors::kLtGray)
+                                ->set_margin(10)
+                                ->set_width({rugui::SizeMode::Parent, 1})
+                                ->set_height({rugui::SizeMode::Parent, 0.7f})
+                                ->add(node_char_desc)))
+                ->add((new rugui::Node{"menu_buttons"})
+                        ->set_width({rugui::SizeMode::Parent, 1})
+                        ->set_height({rugui::SizeMode::Parent, 0.15f})
+                        ->set_flex_dir(rugui::FlexDir::Row)
+                        ->add(node_back_button)
+                        ->add(node_start_button))));
   };
 
   return scene;
