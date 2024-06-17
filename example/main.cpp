@@ -10,9 +10,10 @@
 
 auto WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) -> int {
   ruapp::attach_console();
-  ruapp::load_wgl_functions();
 
+  ruapp::Window::init();
   ruapp::Window::fiber_init();
+
   const auto window = ruapp::Window::create("Hello world", 900, 600);
   window->init_context();
   window->make_context_current();

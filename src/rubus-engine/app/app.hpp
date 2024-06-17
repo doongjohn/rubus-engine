@@ -61,6 +61,7 @@ struct Window {
   std::function<void(Window *, uint32_t)> on_key_down;
   std::function<void(Window *, uint32_t)> on_key_up;
 
+  static auto init() -> void;
   static auto fiber_init() -> void;
   static auto fiber_deinit() -> void;
 
@@ -85,8 +86,6 @@ struct Window {
 };
 
 auto attach_console() -> void;
-
-auto load_wgl_functions() -> void;
 auto reset_context() -> void;
 
 auto get_current_tick() -> double;

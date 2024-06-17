@@ -18,6 +18,59 @@
 
 namespace ruapp {
 
+auto Window::init() -> void {
+  // https://gist.github.com/mmozeiko/ed2ad27f75edf9c26053ce332a1f6647
+  auto dummy = ::CreateWindowExW(0, L"STATIC", L"DummyWindow", WS_OVERLAPPED, CW_USEDEFAULT, CW_USEDEFAULT,
+                                 CW_USEDEFAULT, CW_USEDEFAULT, nullptr, nullptr, nullptr, nullptr);
+  auto dc = ::GetDC(dummy);
+
+  auto pfd = PIXELFORMATDESCRIPTOR{};
+  pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+  pfd.nVersion = 1;
+  pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+  pfd.iPixelType = PFD_TYPE_RGBA;
+  pfd.cColorBits = 24;
+
+  auto pf = ::ChoosePixelFormat(dc, &pfd);
+  if (pf == 0) {
+    std::cerr << "Error: load_wgl_functions ChoosePixelFormat failed\n";
+  }
+  if (not ::DescribePixelFormat(dc, pf, sizeof(pfd), &pfd)) {
+    std::cerr << "Error: load_wgl_functions DescribePixelFormat failed\n";
+  }
+  if (not ::SetPixelFormat(dc, pf, &pfd)) {
+    std::cerr << "Error: load_wgl_functions SetPixelFormat failed\n";
+  }
+
+  auto rc = ::wglCreateContext(dc);
+  if (rc == nullptr) {
+    std::cerr << "Error: load_wgl_functions wglCreateContext failed\n";
+  }
+  if (not ::wglMakeCurrent(dc, rc)) {
+    std::cerr << "Error: load_wgl_functions wglMakeCurrent failed\n";
+  }
+
+  wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)::wglGetProcAddress("wglChoosePixelFormatARB");
+  if (wglChoosePixelFormatARB == nullptr) {
+    std::cerr << "Error: load_wgl_functions \"wglChoosePixelFormatARB\" loading failed\n";
+  }
+
+  wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)::wglGetProcAddress("wglCreateContextAttribsARB");
+  if (wglCreateContextAttribsARB == nullptr) {
+    std::cerr << "Error: load_wgl_functions \"wglCreateContextAttribsARB\" loading failed\n";
+  }
+
+  wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)::wglGetProcAddress("wglSwapIntervalEXT");
+  if (wglSwapIntervalEXT == nullptr) {
+    std::cerr << "Error: load_wgl_functions \"wglSwapIntervalEXT\" loading failed\n";
+  }
+
+  ::wglMakeCurrent(nullptr, nullptr);
+  ::wglDeleteContext(rc);
+  ::ReleaseDC(dummy, dc);
+  ::DestroyWindow(dummy);
+}
+
 auto Window::fiber_init() -> void {
   main_fiber = ::ConvertThreadToFiber(nullptr);
   message_loop_fiber = ::CreateFiber(
@@ -143,17 +196,17 @@ auto Window::init_context() -> void {
     // clang-format on
     auto format = 0;
     auto formats = uint32_t{};
-    if (!wglChoosePixelFormatARB(dc, attribs, nullptr, 1, &format, &formats) || formats == 0) {
+    if (not wglChoosePixelFormatARB(dc, attribs, nullptr, 1, &format, &formats) or formats == 0) {
       std::cerr << "wglChoosePixelFormatARB failed\n";
       return;
     }
     auto pfd = PIXELFORMATDESCRIPTOR{};
     pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-    if (!::DescribePixelFormat(dc, format, sizeof(pfd), &pfd)) {
+    if (not ::DescribePixelFormat(dc, format, sizeof(pfd), &pfd)) {
       std::cerr << "DescribePixelFormat failed\n";
       return;
     }
-    if (!::SetPixelFormat(dc, format, &pfd)) {
+    if (not ::SetPixelFormat(dc, format, &pfd)) {
       std::cerr << "SetPixelFormat failed\n";
       return;
     }
@@ -296,7 +349,7 @@ auto Window::swap_buffers() -> void {
 
 auto Window::run(const std::function<void(Window *, double)> &fn_update) -> void {
   const auto resume_message_thread = std::jthread{[this]() {
-    while (!should_close.load()) {
+    while (not should_close.load()) {
       while (send_resume_message.load()) {
         ::SendMessageW(hWnd, WM_USER_RESUME, 0, 0);
       }
@@ -310,7 +363,7 @@ auto Window::run(const std::function<void(Window *, double)> &fn_update) -> void
   auto fps = uint64_t{};
 
   // main loop
-  while (!should_close.load()) {
+  while (not should_close.load()) {
     // calculate delta time
     delta_time = (get_current_tick() - last_frame) / tick_per_sec;
     last_frame = get_current_tick();
@@ -376,59 +429,6 @@ auto attach_console() -> void {
     freopen_s((FILE **)stdout, "CONOUT$", "w", stdout);
     freopen_s((FILE **)stderr, "CONOUT$", "w", stderr);
   }
-}
-
-auto load_wgl_functions() -> void {
-  // https://gist.github.com/mmozeiko/ed2ad27f75edf9c26053ce332a1f6647
-  auto dummy = ::CreateWindowExW(0, L"STATIC", L"DummyWindow", WS_OVERLAPPED, CW_USEDEFAULT, CW_USEDEFAULT,
-                                 CW_USEDEFAULT, CW_USEDEFAULT, nullptr, nullptr, nullptr, nullptr);
-  auto dc = ::GetDC(dummy);
-
-  auto pfd = PIXELFORMATDESCRIPTOR{};
-  pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
-  pfd.nVersion = 1;
-  pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
-  pfd.iPixelType = PFD_TYPE_RGBA;
-  pfd.cColorBits = 24;
-
-  auto pf = ::ChoosePixelFormat(dc, &pfd);
-  if (pf == 0) {
-    std::cerr << "Error: load_wgl_functions ChoosePixelFormat failed\n";
-  }
-  if (!::DescribePixelFormat(dc, pf, sizeof(pfd), &pfd)) {
-    std::cerr << "Error: load_wgl_functions DescribePixelFormat failed\n";
-  }
-  if (!::SetPixelFormat(dc, pf, &pfd)) {
-    std::cerr << "Error: load_wgl_functions SetPixelFormat failed\n";
-  }
-
-  auto rc = ::wglCreateContext(dc);
-  if (rc == nullptr) {
-    std::cerr << "Error: load_wgl_functions wglCreateContext failed\n";
-  }
-  if (!::wglMakeCurrent(dc, rc)) {
-    std::cerr << "Error: load_wgl_functions wglMakeCurrent failed\n";
-  }
-
-  wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)::wglGetProcAddress("wglChoosePixelFormatARB");
-  if (wglChoosePixelFormatARB == nullptr) {
-    std::cerr << "Error: load_wgl_functions \"wglChoosePixelFormatARB\" loading failed\n";
-  }
-
-  wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)::wglGetProcAddress("wglCreateContextAttribsARB");
-  if (wglCreateContextAttribsARB == nullptr) {
-    std::cerr << "Error: load_wgl_functions \"wglCreateContextAttribsARB\" loading failed\n";
-  }
-
-  wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)::wglGetProcAddress("wglSwapIntervalEXT");
-  if (wglSwapIntervalEXT == nullptr) {
-    std::cerr << "Error: load_wgl_functions \"wglSwapIntervalEXT\" loading failed\n";
-  }
-
-  ::wglMakeCurrent(nullptr, nullptr);
-  ::wglDeleteContext(rc);
-  ::ReleaseDC(dummy, dc);
-  ::DestroyWindow(dummy);
 }
 
 auto reset_context() -> void {
