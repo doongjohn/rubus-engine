@@ -332,7 +332,7 @@ inline auto new_game_scene(GameData *game_data) -> rugame::Scene * {
         if (window->is_mouse_just_down(rugui::MouseButton::Left)) {
           auto mouse_world_pos = scene->camera.screen_to_world_space({window->mouse_x, window->mouse_y});
           if (glm::distance(transform->position, {mouse_world_pos, 0}) <= 24.f) {
-            this_scene->acting_entity_id = entity.entity.id;
+            this_scene->acting_entity_id = entity.id;
 
             // update skill bar
             scene->ui_nodes.at("skill_bar")->set_display_mode(rugui::DisplayMode::Shown);
@@ -361,7 +361,7 @@ inline auto new_game_scene(GameData *game_data) -> rugame::Scene * {
         if (window->is_mouse_just_down(rugui::MouseButton::Left)) {
           auto mouse_world_pos = scene->camera.screen_to_world_space({window->mouse_x, window->mouse_y});
           if (glm::distance(transform->position, {mouse_world_pos, 0}) <= 24.f) {
-            this_scene->target_entity_id = entity.entity.id;
+            this_scene->target_entity_id = entity.id;
             this_scene->target_entity_pos = transform->position;
             this_scene->target_character = character;
             this_scene->target_monster = nullptr;
@@ -379,7 +379,7 @@ inline auto new_game_scene(GameData *game_data) -> rugame::Scene * {
         if (window->is_mouse_just_down(rugui::MouseButton::Left)) {
           auto mouse_world_pos = scene->camera.screen_to_world_space({window->mouse_x, window->mouse_y});
           if (glm::distance(transform->position, {mouse_world_pos, 0}) <= 24.f) {
-            this_scene->target_entity_id = entity.entity.id;
+            this_scene->target_entity_id = entity.id;
             this_scene->target_entity_pos = transform->position;
             this_scene->target_character = nullptr;
             this_scene->target_monster = monster;
@@ -394,7 +394,7 @@ inline auto new_game_scene(GameData *game_data) -> rugame::Scene * {
       for_each_entities(&scene->arch_storage, &scene->command, query_character) {
         auto transform = entity.get_component<TransformComponent>();
 
-        if (entity.entity.id == this_scene->acting_entity_id) {
+        if (entity.id == this_scene->acting_entity_id) {
           transform->position.y += 50;
 
           auto skill_position = this_scene->target_entity_pos + glm::vec3{0, 50, 0};
@@ -453,7 +453,7 @@ inline auto new_game_scene(GameData *game_data) -> rugame::Scene * {
           this_scene->character_count -= 1;
         }
 
-        if (entity.entity.id == this_scene->acting_entity_id) {
+        if (entity.id == this_scene->acting_entity_id) {
           transform->position.y -= 50;
           this_scene->state = GameState::Ready;
         }
@@ -477,14 +477,14 @@ inline auto new_game_scene(GameData *game_data) -> rugame::Scene * {
           for_each_entities(&scene->arch_storage, &scene->command, query_character) {
             if (i == rand_i) {
               auto transform = entity.get_component<TransformComponent>();
-              this_scene->target_entity_id = entity.entity.id;
+              this_scene->target_entity_id = entity.id;
               this_scene->target_entity_pos = transform->position;
               break;
             }
             ++i;
           }
 
-          this_scene->acting_entity_id = entity.entity.id;
+          this_scene->acting_entity_id = entity.id;
           transform->position.y += 50;
 
           auto dist = glm::distance(this_scene->target_entity_pos, transform->position);
@@ -502,7 +502,7 @@ inline auto new_game_scene(GameData *game_data) -> rugame::Scene * {
         auto transform = entity.get_component<TransformComponent>();
         auto monster = entity.get_component<MonsterComponent>();
 
-        if (entity.entity.id == this_scene->acting_entity_id) {
+        if (entity.id == this_scene->acting_entity_id) {
           auto dir = glm::normalize(this_scene->target_entity_pos - transform->position);
           transform->position += dir * (600.f * (float)delta_time);
 
@@ -521,7 +521,7 @@ inline auto new_game_scene(GameData *game_data) -> rugame::Scene * {
         auto transform = entity.get_component<TransformComponent>();
         auto monster = entity.get_component<MonsterComponent>();
 
-        if (entity.entity.id == this_scene->acting_entity_id) {
+        if (entity.id == this_scene->acting_entity_id) {
           transform->position = monster->start_pos;
           monster->action_done = true;
           break;
