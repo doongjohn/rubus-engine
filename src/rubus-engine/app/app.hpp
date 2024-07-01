@@ -62,9 +62,6 @@ struct Window {
   std::function<void(Window *, uint32_t)> on_key_up;
 
   static auto init() -> void;
-  static auto fiber_init() -> void;
-  static auto fiber_deinit() -> void;
-
   static auto create(std::string_view title, int width, int height) -> Window *;
   static auto destroy(Window *window) -> void;
 

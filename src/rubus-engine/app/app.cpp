@@ -71,29 +71,6 @@ auto Window::init() -> void {
   ::DestroyWindow(dummy);
 }
 
-auto Window::fiber_init() -> void {
-  main_fiber = ::ConvertThreadToFiber(nullptr);
-  message_loop_fiber = ::CreateFiber(
-    0,
-    [](void *) -> void {
-      auto msg = MSG{};
-      while (Window::window_count > 0) {
-        while (::PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
-          ::TranslateMessage(&msg);
-          ::DispatchMessageW(&msg);
-        }
-        ::SwitchToFiber(Window::main_fiber);
-      }
-      ::SwitchToFiber(Window::main_fiber);
-    },
-    nullptr);
-}
-
-auto Window::fiber_deinit() -> void {
-  ::DeleteFiber(message_loop_fiber);
-  ::ConvertFiberToThread();
-}
-
 auto Window::create(std::string_view title, int width, int height) -> Window * {
   auto window = new Window{};
   window->hInstance = ::GetModuleHandleW(nullptr);
@@ -152,19 +129,38 @@ auto Window::create(std::string_view title, int width, int height) -> Window * {
   auto dc = ::GetDC(window->hWnd);
   window->device_ctx = dc;
 
-  Window::window_count += 1;
-  std::cout << "Window created\n";
+  // create fiber
+  main_fiber = ::ConvertThreadToFiber(nullptr);
+  message_loop_fiber = ::CreateFiber(
+    0,
+    [](void *) -> void {
+      auto msg = MSG{};
+      while (Window::window_count > 0) {
+        while (::PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+          ::TranslateMessage(&msg);
+          ::DispatchMessageW(&msg);
+        }
+        ::SwitchToFiber(Window::main_fiber);
+      }
+      ::SwitchToFiber(Window::main_fiber);
+    },
+    nullptr);
 
+  Window::window_count += 1;
   return window;
 }
 
 auto Window::destroy(Window *window) -> void {
+  // delete window
   ::UnregisterClassW(window->win_class_name, window->hInstance);
   ::DestroyWindow(window->hWnd);
   delete window;
 
+  // delete fiber
+  ::DeleteFiber(message_loop_fiber);
+  ::ConvertFiberToThread();
+
   Window::window_count -= 1;
-  std::cout << "Window destroyed";
 }
 
 auto Window::init_context() -> void {
@@ -234,105 +230,101 @@ auto Window::init_context() -> void {
 
   // setup debug callback
   make_context_current();
-  {
-    auto flags = 0;
-    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
-    auto is_debug = flags & GL_CONTEXT_FLAG_DEBUG_BIT;
-    if (is_debug) {
-      glEnable(GL_DEBUG_OUTPUT);
-      glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-      glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
-      glDebugMessageCallback(
-        [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *msg,
-           const void *data) -> void {
-          (void)length;
-          (void)data;
+  auto flags = 0;
+  glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+  auto is_debug = flags & GL_CONTEXT_FLAG_DEBUG_BIT;
+  if (is_debug) {
+    std::cout << "OpenGL debug msg: enabled\n";
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
+    glDebugMessageCallback(
+      [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *msg,
+         const void *data) -> void {
+        (void)length;
+        (void)data;
 
-          if (id == 131186) {
-            // Buffer performance warning: Buffer object 1 (bound to GL_ELEMENT_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) is being copied/moved from VIDEO memory to HOST memory.
-            return;
-          }
+        if (id == 131186) {
+          // Buffer performance warning: Buffer object 1 (bound to GL_ELEMENT_ARRAY_BUFFER_ARB, usage hint is GL_STATIC_DRAW) is being copied/moved from VIDEO memory to HOST memory.
+          return;
+        }
 
-          const char *str_source;
-          switch (source) {
-          case GL_DEBUG_SOURCE_API:
-            str_source = "API";
-            break;
-          case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-            str_source = "WINDOW_SYSTEM";
-            break;
-          case GL_DEBUG_SOURCE_SHADER_COMPILER:
-            str_source = "SHADER_COMPILER";
-            break;
-          case GL_DEBUG_SOURCE_THIRD_PARTY:
-            str_source = "THIRD_PARTY";
-            break;
-          case GL_DEBUG_SOURCE_APPLICATION:
-            str_source = "APPLICATION";
-            break;
-          case GL_DEBUG_SOURCE_OTHER:
-            str_source = "OTHER";
-            break;
-          default:
-            str_source = "UNKNOWN";
-            break;
-          }
+        const char *str_source;
+        switch (source) {
+        case GL_DEBUG_SOURCE_API:
+          str_source = "API";
+          break;
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+          str_source = "WINDOW_SYSTEM";
+          break;
+        case GL_DEBUG_SOURCE_SHADER_COMPILER:
+          str_source = "SHADER_COMPILER";
+          break;
+        case GL_DEBUG_SOURCE_THIRD_PARTY:
+          str_source = "THIRD_PARTY";
+          break;
+        case GL_DEBUG_SOURCE_APPLICATION:
+          str_source = "APPLICATION";
+          break;
+        case GL_DEBUG_SOURCE_OTHER:
+          str_source = "OTHER";
+          break;
+        default:
+          str_source = "UNKNOWN";
+          break;
+        }
 
-          const char *str_type;
-          switch (type) {
-          case GL_DEBUG_TYPE_ERROR:
-            str_type = "ERROR";
-            break;
-          case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-            str_type = "DEPRECATED_BEHAVIOR";
-            break;
-          case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-            str_type = "UDEFINED_BEHAVIOR";
-            break;
-          case GL_DEBUG_TYPE_PORTABILITY:
-            str_type = "PORTABILITY";
-            break;
-          case GL_DEBUG_TYPE_PERFORMANCE:
-            str_type = "PERFORMANCE";
-            break;
-          case GL_DEBUG_TYPE_OTHER:
-            str_type = "OTHER";
-            break;
-          case GL_DEBUG_TYPE_MARKER:
-            str_type = "MARKER";
-            break;
-          default:
-            str_type = "UNKNOWN";
-            break;
-          }
+        const char *str_type;
+        switch (type) {
+        case GL_DEBUG_TYPE_ERROR:
+          str_type = "ERROR";
+          break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+          str_type = "DEPRECATED_BEHAVIOR";
+          break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+          str_type = "UDEFINED_BEHAVIOR";
+          break;
+        case GL_DEBUG_TYPE_PORTABILITY:
+          str_type = "PORTABILITY";
+          break;
+        case GL_DEBUG_TYPE_PERFORMANCE:
+          str_type = "PERFORMANCE";
+          break;
+        case GL_DEBUG_TYPE_OTHER:
+          str_type = "OTHER";
+          break;
+        case GL_DEBUG_TYPE_MARKER:
+          str_type = "MARKER";
+          break;
+        default:
+          str_type = "UNKNOWN";
+          break;
+        }
 
-          const char *str_severity;
-          switch (severity) {
-          case GL_DEBUG_SEVERITY_HIGH:
-            str_severity = "HIGH";
-            break;
-          case GL_DEBUG_SEVERITY_MEDIUM:
-            str_severity = "MEDIUM";
-            break;
-          case GL_DEBUG_SEVERITY_LOW:
-            str_severity = "LOW";
-            break;
-          case GL_DEBUG_SEVERITY_NOTIFICATION:
-            str_severity = "NOTIFICATION";
-            break;
-          default:
-            str_severity = "UNKNOWN";
-            break;
-          }
+        const char *str_severity;
+        switch (severity) {
+        case GL_DEBUG_SEVERITY_HIGH:
+          str_severity = "HIGH";
+          break;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+          str_severity = "MEDIUM";
+          break;
+        case GL_DEBUG_SEVERITY_LOW:
+          str_severity = "LOW";
+          break;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+          str_severity = "NOTIFICATION";
+          break;
+        default:
+          str_severity = "UNKNOWN";
+          break;
+        }
 
-          std::cerr << std::format("OpenGL debug message [{}]: ({}, {}) from {}\n  {}\n", str_severity, str_type, id,
-                                   str_source, msg);
-        },
-        nullptr);
-      std::cout << "OpenGL debug callback enabled\n";
-    } else {
-      std::cout << "OpenGL debug callback not enabled\n";
-    }
+        std::cerr << std::format("OpenGL debug msg [{}]: ({}, {}) from {}\n  {}\n", str_severity, str_type, id,
+                                 str_source, msg);
+      },
+      nullptr);
   }
   reset_context();
 }
@@ -520,6 +512,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
   } break;
 
+    // mouse enter
   case WM_MOUSEHOVER: {
     window->is_mouse_tracking = false;
     TRACKMOUSEEVENT tme;
@@ -537,6 +530,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
   } break;
 
+    // mouse leave
   case WM_MOUSELEAVE: {
     window->is_mouse_tracking = false;
     auto mouse_pos = POINT{};
@@ -548,6 +542,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
   } break;
 
+    // mouse move
   case WM_MOUSEMOVE: {
     if (!window->is_mouse_tracking) {
       TRACKMOUSEEVENT tme;
@@ -567,7 +562,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
   } break;
 
-    // mouse left button
+    // left mouse button
   case WM_LBUTTONDOWN: {
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);
@@ -595,7 +590,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
   } break;
 
-    // mouse right button
+    // right mouse button
   case WM_RBUTTONDOWN: {
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);
@@ -623,7 +618,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     }
   } break;
 
-    // mouse middle button
+    // middle mouse button
   case WM_MBUTTONDOWN: {
     const auto x = GET_X_LPARAM(lParam);
     const auto y = GET_Y_LPARAM(lParam);

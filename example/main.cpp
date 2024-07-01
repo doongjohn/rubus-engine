@@ -10,9 +10,7 @@
 
 auto WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) -> int {
   ruapp::attach_console();
-
   ruapp::Window::init();
-  ruapp::Window::fiber_init();
 
   const auto window = ruapp::Window::create("Hello world", 900, 600);
   window->init_context();
@@ -32,9 +30,6 @@ auto WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) -> int {
   });
 
   scene_manager.deinit(window);
-
   ruapp::Window::destroy(window);
-  ruapp::Window::fiber_deinit();
-
   return EXIT_SUCCESS;
 }
